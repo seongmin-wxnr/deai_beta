@@ -1,3 +1,0 @@
-[{"puuid":"KXalScg4JQShLsJbKRTFIpXm8De1wHnq0gETzNhIn7XowVLMVJglwavmPqwtYniDdeYdfMiY1qgPmQ","leagueId":"c9b380af-6601-4de4-b80b-b0d8a880283b","queueType":"RANKED_TFT","tier":"DIAMOND","rank":"IV","leaguePoints":7,"wins":137,"losses":136,"veteran":false,"inactive":false,"freshBlood":true,"hotStreak":true},
-
-{"puuid":"KXalScg4JQShLsJbKRTFIpXm8De1wHnq0gETzNhIn7XowVLMVJglwavmPqwtYniDdeYdfMiY1qgPmQ","leagueId":"c1268a8f-b3f7-4f92-accd-009bd37ce292","queueType":"RANKED_TFT_DOUBLE_UP","tier":"PLATINUM","rank":"IV","leaguePoints":56,"wins":26,"losses":17,"veteran":false,
