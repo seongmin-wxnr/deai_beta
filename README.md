@@ -9,7 +9,7 @@
 - EMAIL_HOST_PASSWORD = 'password (not your gmail password)'
 - DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-### about deai.gg
+### about deai
 
 deai.gg is a test web platform that supports party recruitment and match history lookup for Riot Games titles such as League of Legends, VALORANT, and Teamfight Tactics.
 
