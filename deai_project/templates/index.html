@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+{% load static %}
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{% static 'css/common.css' %}">
+  <link rel="stylesheet" href="{% static 'css/index.css' %}">
+
+  <title>Welcome Deai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Styrene+A:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- 배경 Orb -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <!-- Nav -->
+  <nav>
+    
+    <button class="nav-link" onclick="navigateTo('/login/')">로그인</button>
+    <button class="nav-link" onclick="navigateTo('/register/')">회원가입</button>
+    <button class="nav-link" onclick="navigateTo('/aboutDeai/')">Deai</button>
+    <button class="nav-link" onclick="navigateTo('/createAuthor/')">만든 사람</button>
+  </nav>
+
+  <!-- 메인 콘텐츠 -->
+  <main>
+    <p class="eyebrow">어서오세요.</p>
+    <h1 class="headline">Deai</h1>
+    <p class="subtext">
+      소개글1<br>이하 
+    </p>
+    <div class="cta-group">
+      <button class="btn btn-primary" onclick="navigateTo('login/')">로그인 하기</button>
+      <button class="btn btn-secondary" onclick="navigateTo('/aboutDeai/')">더 알아보기</button>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer-bar">
+    <a href="#" class="footer-link">개인정보 처리방침</a>
+    <a href="#" class="footer-link">이용약관</a>
+    <a href="#" class="footer-link">© 2025</a>
+  </footer>
+
+  <script>
+    function navigateTo(url) {
+      document.body.classList.add('fade-out');
+      setTimeout(() => { window.location.href = url; }, 400);
+    }
+  </script>
+
+</body>
+</html>

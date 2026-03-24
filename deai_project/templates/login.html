@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인 · Test</title>
+  <link href="https://fonts.googleapis.com/css2?family=Styrene+A:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/common.css' %}">
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+  <nav>
+    <button class="logo" onclick="navigateTo('/')">
+  
+      <span class="logo-name">Deai</span>
+    </button>
+    <button class="nav-link" onclick="navigateTo('/')">← 홈으로</button>
+  </nav>
+  <div class="login-wrap">
+    <div class="login-card">
+      <h1 class="login-title">로그인</h1>
+      <p class="login-sub">계정에 로그인하여 계속하세요</p>
+
+      <div class="input-group">
+        <input class="input-field" type="text" placeholder="닉네임" id="username"/>
+        <input class="input-field" type="password" placeholder="비밀번호" />
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="handleLogin()">로그인</button>
+
+      <div class="divider">또는</div>
+
+      <button class="btn btn-secondary btn-full">Google로 계속하기(현재 미지원)</button>
+
+      <div class="login-footer">
+        계정이 없으신가요? <a href="#" onclick="navigateTo('/register/')">회원가입</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer-bar">
+    <a href="#" class="footer-link">개인정보 처리방침</a>
+    <a href="#" class="footer-link">이용약관</a>
+    <a href="#" class="footer-link">© 2025</a>
+  </footer>
+
+  <script>
+  function navigateTo(url) {
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = url; }, 400);
+  }
+
+  function getCookie(name) {
+    let value = null;
+    document.cookie.split(';').forEach(c => {
+      const [k, v] = c.trim().split('=');
+      if (k === name) value = decodeURIComponent(v);
+    });
+    
+    return value;
+  }
+
+  async function handleLogin() {
+    const username = document.querySelector('input[type="text"]').value.trim();
+    const password = document.querySelector('input[type="password"]').value.trim();
+
+    if (!username || !password) {
+      showError('닉네임과 비밀번호를 입력해주세요.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/login/', {
+        method : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken' : getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        // 이벤트페이지 특별 처리 (yunseo 전용)
+          navigateTo(data.redirect_url);
+        }
+        showError(data.message);
+    } catch (err) {
+      showError('네트워크 오류가 발생했습니다.');
+    }
+  }
+
+  function showError(msg) {
+    // 에러 메시지 표시 영역이 있으면 거기에, 없으면 alert
+    const el = document.getElementById('error-msg');
+    if (el) el.textContent = msg;
+    else alert(msg);
+  }
+</script>
+</body>
+</html>

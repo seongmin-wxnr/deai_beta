@@ -1,0 +1,2613 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ko">
+<head>
+  <div class="modal-overlay" id="detail-modal" onclick="handleDetailOverlayClick(event)">
+    <div class="modal-card" style="max-width:500px">
+
+      <div class="detail-game-header" id="detail-game-header"></div>
+      <div class="detail-title"       id="detail-title"></div>
+
+      <div style="margin-bottom:16px">
+        <span class="detail-status-badge" id="detail-status"></span>
+        <span class="detail-time"         id="detail-time"></span>
+      </div>
+
+      <div class="detail-section-label">작성자 정보</div>
+      <div class="detail-info-grid">
+        <div class="detail-info-item">
+          <span class="detail-info-key">닉네임</span>
+          <span class="detail-info-val" id="detail-author"></span>
+        </div>
+        <div class="detail-info-item">
+          <span class="detail-info-key">인게임 ID</span>
+          <span class="detail-info-val" id="detail-nametag"></span>
+        </div>
+        <div class="detail-info-item">
+          <span class="detail-info-key">티어</span>
+          <span class="detail-info-val" id="detail-author-tier"></span>
+        </div>
+        <div class="detail-info-item">
+          <span class="detail-info-key">포지션 / 역할</span>
+          <span class="detail-info-val" id="detail-sub-info"></span>
+        </div>
+      </div>
+
+      <div class="detail-section-label">모집 정보</div>
+      <div class="detail-info-grid">
+        <div class="detail-info-item">
+          <span class="detail-info-key">인원</span>
+          <span class="detail-info-val" id="detail-members"></span>
+        </div>
+        <div class="detail-info-item">
+          <span class="detail-info-key">티어 조건</span>
+          <span class="detail-info-val" id="detail-tier-cond"></span>
+        </div>
+      </div>
+
+      <div id="detail-body-wrap" style="display:none; margin-top:0">
+        <div class="detail-section-label">한마디</div>
+        <div class="detail-body" id="detail-body"></div>
+      </div>
+
+      <!-- 파티 멤버 목록 -->
+      <div style="margin-top:0">
+        <div class="detail-section-label">파티 멤버</div>
+        <div id="detail-member-list" style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+          <div class="chat-empty" style="padding:12px 0">불러오는 중...</div>
+        </div>
+      </div>
+
+      <div class="modal-btns" style="margin-top:24px">
+        <button class="btn-cancel" onclick="closeDetailModal()">닫기</button>
+        <button class="btn-join" id="btn-join" onclick="joinPost()">🙋 참여하기</button>
+        <button class="btn-leave" id="btn-leave" onclick="leavePost()" style="display:none">🚪 탈퇴하기</button>
+        <button class="btn-submit" onclick="openChatModal()">💬 채팅 오픈</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="modal-overlay" id="chat-modal" onclick="handleChatOverlayClick(event)">
+    <div class="chat-modal-card">
+      <div class="chat-header">
+        <div class="chat-header-info">
+          <span class="chat-header-icon" id="chat-header-icon">💬</span>
+          <div>
+            <div class="chat-header-title" id="chat-header-title">채팅</div>
+            <div class="chat-header-sub"   id="chat-header-sub"></div>
+          </div>
+        </div>
+        <button class="chat-close-btn" onclick="closeChatModal()">✕</button>
+      </div>
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-empty">이전 대화내역은 표시되지 않으며 채팅 종료 시 대화내역은 삭제됩니다.</div>
+        
+      </div>
+      <div class="chat-input-wrap">
+        <input class="chat-input" id="chat-input"
+               type="text" placeholder="메시지를 입력하세요..."
+               maxlength="200"
+               onkeydown="if(event.key==='Enter') sendMessage()">
+        <button class="chat-send-btn" onclick="sendMessage()">전송</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 프로필 모달 ── -->
+  <div class="modal-overlay" id="profile-modal" onclick="handleProfileOverlayClick(event)">
+    <div class="modal-card" style="max-width:480px">
+      <div class="detail-game-header" style="background:rgba(201,168,76,0.1);border-color:rgba(201,168,76,0.3);margin-bottom:20px">
+        👤 내 프로필
+      </div>
+
+      <!-- 기본 정보 -->
+      <div class="detail-section-label">기본 정보</div>
+      <div class="detail-info-grid">
+        <div class="detail-info-item">
+          <span class="detail-info-key">닉네임</span>
+          <span class="detail-info-val" id="pf-username"></span>
+        </div>
+        <div class="detail-info-item">
+          <span class="detail-info-key">이메일</span>
+          <span class="detail-info-val" id="pf-email"></span>
+        </div>
+      </div>
+
+      <!-- 게임 목록 -->
+      <div class="detail-section-label" style="margin-top:16px">등록된 게임</div>
+      <div id="pf-games-list" style="display:flex;flex-direction:column;gap:10px"></div>
+
+      <div class="modal-btns" style="margin-top:24px">
+        <button class="btn-cancel" onclick="closeProfileModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 타 유저 프로필 모달 ── -->
+  <div class="modal-overlay" id="user-profile-modal" onclick="handleUserProfileOverlayClick(event)">
+    <div class="modal-card" style="max-width:460px">
+      <div class="detail-game-header" id="upm-header" style="background:rgba(201,168,76,0.1);border-color:rgba(201,168,76,0.3);margin-bottom:20px">
+        👤 <span id="upm-username"></span>
+      </div>
+
+      <div class="detail-section-label">게임 프로필</div>
+      <div id="upm-games-list" style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+        <div class="chat-empty" style="padding:12px 0">불러오는 중...</div>
+      </div>
+
+      <div class="modal-btns" style="margin-top:24px">
+        <button class="btn-cancel" onclick="closeUserProfileModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 친구 모달 ── -->
+  <div class="modal-overlay" id="friend-modal" onclick="handleFriendOverlayClick(event)">
+    <div class="modal-card" style="max-width:460px">
+      <div class="detail-game-header" style="background:rgba(201,168,76,0.1);border-color:rgba(201,168,76,0.3);margin-bottom:20px">
+        👥 친구 목록
+      </div>
+
+      <!-- 친구 추가 -->
+      <div style="margin-bottom:20px">
+        <div style="display:flex;gap:8px">
+          <input class="chat-input" id="friend-search-input"
+                 type="text" placeholder="닉네임으로 검색..."
+                 style="flex:1"
+                 onkeydown="if(event.key==='Enter') searchFriend()">
+          <button class="btn-submit" onclick="searchFriend()" style="padding:10px 18px;white-space:nowrap">검색</button>
+        </div>
+        <div id="friend-search-result"></div>
+      </div>
+
+      <!-- 친구 목록 -->
+      <div class="detail-section-label">친구</div>
+      <div id="friend-list" style="display:flex;flex-direction:column;gap:8px;min-height:60px">
+        <div class="chat-empty" style="padding:20px 0">친구를 추가해보세요 👋</div>
+      </div>
+
+      <div class="modal-btns" style="margin-top:24px">
+        <button class="btn-cancel" onclick="closeFriendModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 알림 모달 ── -->
+  <div class="modal-overlay" id="notif-modal" onclick="handleNotifOverlayClick(event)">
+    <div class="modal-card" style="max-width:420px;display:flex;flex-direction:column;max-height:80vh">
+      <div class="detail-game-header" style="background:rgba(201,168,76,0.1);border-color:rgba(201,168,76,0.3);margin-bottom:20px;flex-shrink:0">
+        🔔 알림
+      </div>
+      <div id="notif-list" style="display:flex;flex-direction:column;gap:8px;min-height:60px;overflow-y:auto;flex:1;padding-right:4px">
+        <div class="chat-empty" style="padding:20px 0">새로운 알림이 없어요 😊</div>
+      </div>
+      <div class="modal-btns" style="margin-top:16px;flex-shrink:0">
+        <button id="btn-clear-notif" class="btn-cancel" onclick="clearAllNotifs()"
+                style="display:none;border-color:rgba(239,68,68,0.35);color:#f87171">
+          🗑 전체 삭제
+        </button>
+        <button class="btn-cancel" onclick="closeNotifModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 친구 프로필 모달 ── -->
+  <div class="modal-overlay" id="friend-profile-modal" onclick="handleFriendProfileOverlayClick(event)" style="z-index:999">
+    <div class="modal-card" style="max-width:460px">
+      <div class="detail-game-header" style="background:rgba(201,168,76,0.1);border-color:rgba(201,168,76,0.3);margin-bottom:20px">
+        👤 <span id="fpm-username"></span>
+      </div>
+      <div class="detail-section-label">게임 프로필</div>
+      <div id="fpm-games-list" style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+        <div class="chat-empty" style="padding:12px 0">불러오는 중...</div>
+      </div>
+      <div class="modal-btns" style="margin-top:24px">
+        <button class="btn-submit" onclick="openDMModal()" style="flex:1">💬 채팅하기</button>
+        <button class="btn-cancel" onclick="closeFriendProfileModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DM 채팅 모달 ── -->
+  <div class="modal-overlay" id="dm-modal" onclick="handleDMOverlayClick(event)" style="z-index:999">
+    <div class="chat-modal-card">
+      <div class="chat-header">
+        <div class="chat-header-info">
+          <span class="chat-header-icon">💬</span>
+          <div>
+            <div class="chat-header-title" id="dm-header-title">채팅</div>
+            <div class="chat-header-sub" id="dm-header-sub"></div>
+          </div>
+        </div>
+        <button class="chat-close-btn" onclick="closeDMModal()">✕</button>
+      </div>
+      <div class="chat-messages" id="dm-messages">
+        <div class="chat-empty">대화를 시작해보세요! 👋</div>
+      </div>
+      <div class="chat-input-wrap">
+        <input class="chat-input" id="dm-input" type="text" placeholder="메시지 입력..."
+               onkeydown="if(event.key==='Enter') sendDM()">
+        <button class="chat-send-btn" onclick="sendDM()">전송</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 유저 신고 검색 모달 ── -->
+  <div class="modal-overlay" id="report-search-modal" onclick="handleReportSearchOverlayClick(event)" style="z-index:999">
+    <div class="modal-card" style="max-width:440px">
+      <div class="detail-game-header" style="background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.25);margin-bottom:20px">
+        🚨 유저 신고
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">신고할 유저 검색</label>
+        <div style="display:flex;gap:8px">
+          <input class="modal-input" id="report-search-input" type="text" placeholder="유저명 입력..."
+                 onkeydown="if(event.key==='Enter') searchReportUser()">
+          <button class="btn-submit" onclick="searchReportUser()" style="padding:10px 18px;white-space:nowrap">검색</button>
+        </div>
+        <div id="report-search-result" style="margin-top:10px"></div>
+      </div>
+      <div class="modal-btns" style="margin-top:24px">
+        <button class="btn-cancel" onclick="closeReportSearchModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 신고 사유 입력 모달 ── -->
+  <div class="modal-overlay" id="report-reason-modal" onclick="handleReportReasonOverlayClick(event)" style="z-index:1000">
+    <div class="modal-card" style="max-width:440px">
+      <div class="detail-game-header" style="background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.25);margin-bottom:20px">
+        🚨 <span id="report-reason-title">신고하기</span>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">신고 카테고리</label>
+        <select class="modal-select" id="report-category">
+          <option value="">카테고리 선택</option>
+          <option value="욕설/비하">욕설 / 비하</option>
+          <option value="스팸/도배">스팸 / 도배</option>
+          <option value="사기">사기 행위</option>
+          <option value="부적절한 닉네임">부적절한 닉네임</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">상세 사유 <span style="color:var(--muted);font-weight:400">(최소 10자)</span></label>
+        <textarea class="modal-textarea" id="report-detail" placeholder="신고 사유를 자세히 적어주세요..." style="min-height:120px"></textarea>
+      </div>
+      <div class="modal-btns" style="margin-top:24px">
+        <button class="btn-cancel" onclick="closeReportReasonModal()">취소</button>
+        <button class="btn-submit" onclick="submitReport()" style="background:#ef4444;flex:2">🚨 신고 제출</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+     const DB_GAMES = {{ games_json|safe }};
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deai — 파티 모집</title>
+  <link href="https://fonts.googleapis.com/css2?family=Styrene+A:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/common.css' %}">
+  <link rel="stylesheet" href="{% static 'css/Main.css' %}">
+  <style>
+    /* ── 티어 배지 메타 태그 ── */
+    .tier-meta-tag {
+      display: inline-block;
+      font-size: 11px;
+      color: rgba(232,227,216,0.65);
+      background: rgba(114, 91, 91, 0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+    }
+
+    /* ── 프로필 게임 태그 (상세) ── */
+    .profile-game-tag {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-left: 3px solid var(--tag-color, var(--accent));
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      transition: background 0.2s;
+    }
+    .profile-game-tag:hover {
+      background: rgba(255,255,255,0.06);
+    }
+    .profile-game-tag-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .profile-game-tag-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .profile-game-tag-info span {
+      font-size: 11px;
+      color: rgba(232,227,216,0.6);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── 게시글 상세 모달 ── */
+    .detail-game-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: 10px;
+      border: 1px solid transparent;
+      margin-bottom: 14px;
+      font-size: 14px; font-weight: 600; color: var(--text);
+    }
+    .detail-title {
+      font-size: 17px; font-weight: 700;
+      color: var(--text); margin-bottom: 10px; line-height: 1.4;
+    }
+    .detail-status-badge {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px; margin-right: 8px;
+    }
+    .detail-status-badge.open { background: rgba(16,185,129,0.15); color: #10b981; }
+    .detail-status-badge.full { background: rgba(239,68,68,0.15);  color: #ef4444; }
+    .detail-time { font-size: 12px; color: var(--muted); }
+    .detail-section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--muted);
+      margin: 18px 0 10px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .detail-section-label::after {
+      content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.08);
+    }
+    .detail-info-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .detail-info-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px; padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .detail-info-key {
+      font-size: 10px; color: var(--muted);
+      font-weight: 600; letter-spacing: 0.5px;
+    }
+    .detail-info-val {
+      font-size: 13px; color: var(--text); font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .detail-body {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px; padding: 12px 14px;
+      font-size: 13px; color: var(--text);
+      line-height: 1.6; white-space: pre-wrap;
+    }
+    .post-card { cursor: pointer; }
+    .post-card:active { transform: scale(0.99); }
+
+    /* ════════════════════════════════
+       채팅 모달
+    ════════════════════════════════ */
+    .chat-modal-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 460px;
+      height: 580px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalIn 0.25s ease;
+    }
+    .chat-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .chat-header-info {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .chat-header-icon {
+      font-size: 22px;
+      width: 42px; height: 42px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .chat-header-title {
+      font-size: 14px; font-weight: 700; color: var(--text);
+    }
+    .chat-header-sub {
+      font-size: 11px; color: var(--muted); margin-top: 2px;
+    }
+    .chat-close-btn {
+      background: none; border: none;
+      color: var(--muted); font-size: 16px;
+      cursor: pointer; padding: 4px 8px;
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .chat-close-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+
+    /* 메시지 영역 */
+    .chat-messages {
+      flex: 1; overflow-y: auto;
+      padding: 16px 20px;
+      display: flex; flex-direction: column; gap: 10px;
+      scroll-behavior: smooth;
+    }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+    .chat-empty {
+      text-align: center; color: var(--muted);
+      font-size: 13px; margin: auto;
+    }
+
+    /* 말풍선 */
+    .chat-msg {
+      display: flex; flex-direction: column; max-width: 75%;
+    }
+    .chat-msg.me    { align-self: flex-end; align-items: flex-end; }
+    .chat-msg.other { align-self: flex-start; align-items: flex-start; }
+
+    .chat-msg-name {
+      font-size: 10px; color: var(--muted);
+      margin-bottom: 3px; font-weight: 600;
+    }
+    .chat-msg-bubble {
+      padding: 9px 13px;
+      border-radius: 16px;
+      font-size: 13px; line-height: 1.5;
+      word-break: break-word;
+    }
+    .chat-msg.me    .chat-msg-bubble {
+      background: var(--accent);
+      color: #1a1208;
+      border-bottom-right-radius: 4px;
+    }
+    .chat-msg.other .chat-msg-bubble {
+      background: rgba(255,255,255,0.07);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+    .chat-msg-time {
+      font-size: 10px; color: var(--muted); margin-top: 3px;
+    }
+
+    /* 시스템 메시지 */
+    .chat-msg-system {
+      text-align: center; font-size: 11px;
+      color: var(--muted); padding: 4px 0;
+    }
+
+    /* 입력창 */
+    .chat-input-wrap {
+      display: flex; gap: 8px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .chat-input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: var(--text); font-size: 13px;
+      outline: none; transition: border-color 0.2s;
+    }
+    .chat-input:focus { border-color: var(--accent); }
+    .chat-send-btn {
+      background: var(--accent);
+      color: #1a1208;
+      border: none; border-radius: 10px;
+      padding: 10px 18px;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+    .chat-send-btn:hover { opacity: 0.85; }
+
+    /* ── 삭제 버튼 ── */
+    .post-card-wrap {
+      position: relative;
+    }
+    .btn-delete-post {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.2);
+      color: #ef4444;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s, background 0.2s;
+      font-family: 'Styrene A', sans-serif;
+      white-space: nowrap;
+    }
+    .post-card-wrap .btn-delete-post {
+      opacity: 1;
+    }
+    .btn-delete-post:hover {
+      background: rgba(239,68,68,0.25);
+      border-color: rgba(239,68,68,0.4);
+    }
+
+    /* ── 참여하기 버튼 ── */
+    .btn-join {
+      background: rgba(16,185,129,0.12);
+      color: #10b981;
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 12px;
+      padding: 11px 22px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Styrene A', sans-serif;
+    }
+    .btn-join:hover:not(:disabled) {
+      background: rgba(16,185,129,0.22);
+      border-color: rgba(16,185,129,0.5);
+      transform: translateY(-1px);
+    }
+    .btn-join:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .btn-join.joined {
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+      border-color: var(--border);
+    }
+    .btn-join.full {
+      background: rgba(239,68,68,0.08);
+      color: #ef4444;
+      border-color: rgba(239,68,68,0.2);
+    }
+
+    /* ── Nav 아이콘 버튼 ── */
+    .nav-icon-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 16px;
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-icon-btn:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: var(--accent);
+    }
+
+    /* ── 게임 프로필 카드 ── */
+    .pf-game-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .pf-game-icon {
+      font-size: 24px;
+      width: 44px; height: 44px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .pf-game-info { flex: 1; }
+    .pf-game-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .pf-game-detail { font-size: 11px; color: var(--muted); }
+
+    /* ── 친구 아이템 ── */
+    .friend-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .friend-avatar {
+      width: 36px; height: 36px;
+      background: rgba(201,168,76,0.15);
+      border: 1px solid rgba(201,168,76,0.3);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .friend-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); }
+    .btn-friend-del {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      color: #ef4444;
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Styrene A', sans-serif;
+    }
+    .btn-friend-del:hover {
+      background: rgba(239,68,68,0.2);
+    }
+
+    .pf-tag {
+      display: inline-block;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .nav-notif-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .notif-badge {
+      position: absolute;
+      top: -4px; right: -4px;
+      background: #ef4444;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      min-width: 16px; height: 16px;
+      border-radius: 99px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 4px;
+      pointer-events: none;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .notif-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .notif-item-info { flex: 1; }
+    .notif-item-title {
+      font-size: 13px; font-weight: 600;
+      color: var(--text); margin-bottom: 4px;
+    }
+    .notif-item-sub {
+      font-size: 11px; color: var(--muted);
+    }
+    .notif-item-btns {
+      display: flex; gap: 6px; flex-shrink: 0;
+    }
+    .btn-notif-accept {
+      background: rgba(16,185,129,0.12);
+      color: #10b981;
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: 11px; font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Styrene A', sans-serif;
+    }
+    .btn-notif-accept:hover { background: rgba(16,185,129,0.22); }
+    .btn-notif-reject {
+      background: rgba(239,68,68,0.08);
+      color: #ef4444;
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: 11px; font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Styrene A', sans-serif;
+    }
+    .btn-notif-reject:hover { background: rgba(239,68,68,0.2); }
+
+    .btn-leave {
+      background: rgba(239,68,68,0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 12px;
+      padding: 11px 22px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Styrene A', sans-serif;
+    }
+    .btn-leave:hover {
+      background: rgba(239,68,68,0.22);
+      border-color: rgba(239,68,68,0.5);
+      transform: translateY(-1px);
+    }
+
+    .member-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 14px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .member-item:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(201,168,76,0.3);
+    }
+    .member-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .member-avatar.host {
+      background: rgba(201,168,76,0.15);
+      border: 1px solid rgba(201,168,76,0.35);
+      color: var(--accent);
+    }
+    .member-avatar.guest {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .member-info { flex: 1; min-width: 0; }
+    .member-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .member-tag  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .member-badge {
+      font-size: 10px; font-weight: 700;
+      background: rgba(201,168,76,0.12);
+      color: var(--accent);
+      border: 1px solid rgba(201,168,76,0.25);
+      border-radius: 6px;
+      padding: 2px 8px;
+      flex-shrink: 0;
+    }
+
+    .nav-icon-btn.active {
+      background: rgba(201,168,76,0.15);
+      border-color: rgba(201,168,76,0.4);
+      color: var(--accent);
+    }
+    .my-post-badge {
+      display: inline-block;
+      background: rgba(201,168,76,0.12);
+      color: var(--accent);
+      border: 1px solid rgba(201,168,76,0.25);
+      border-radius: 6px;
+      padding: 1px 7px;
+      font-size: 10px;
+      font-weight: 700;
+      vertical-align: middle;
+      margin-left: 4px;
+    }
+  
+
+    /* ── Mobile / Tablet Responsive Overrides ── */
+    @media (max-width: 1024px) {
+      nav {
+        padding: 16px 20px;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .nav-user {
+        display: flex !important;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+        max-width: 72%;
+      }
+      .main-wrap {
+        padding: 96px 20px 28px !important;
+      }
+      .main-inner {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+      }
+      .sidebar,
+      .board-wrap {
+        width: 100% !important;
+        min-width: 0 !important;
+      }
+      .game-tabs {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+      }
+      .board-header {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px 12px !important;
+        align-items: flex-start !important;
+      }
+      .post-top,
+      .post-meta {
+        flex-wrap: wrap !important;
+      }
+      .post-title {
+        width: 100% !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      nav {
+        position: sticky;
+        top: 0;
+        padding: 14px 14px;
+        backdrop-filter: blur(12px);
+        background: rgba(10,10,10,0.88);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+      .logo-name {
+        font-size: 15px !important;
+      }
+      .nav-user {
+        max-width: 100%;
+        width: 100%;
+        justify-content: flex-start;
+        gap: 8px;
+      }
+      .nav-avatar {
+        width: 34px !important;
+        height: 34px !important;
+        flex-shrink: 0;
+      }
+      .nav-logout,
+      .nav-icon-btn {
+        min-height: 40px;
+      }
+      .nav-logout {
+        padding: 9px 12px !important;
+        font-size: 12px !important;
+        white-space: nowrap;
+      }
+      .main-wrap {
+        padding: 14px !important;
+      }
+      .main-inner {
+        gap: 16px !important;
+      }
+      .profile-card,
+      .board-wrap,
+      .post-card,
+      .modal-card,
+      .chat-modal-card {
+        width: 100% !important;
+        min-width: 0 !important;
+      }
+      .profile-top,
+      .tier-badge {
+        align-items: flex-start !important;
+      }
+      .profile-games {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+      }
+      .game-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap !important;
+        padding-bottom: 6px;
+        scrollbar-width: none;
+      }
+      .game-tabs::-webkit-scrollbar {
+        display: none;
+      }
+      .game-tab {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+      .board-title {
+        font-size: 20px !important;
+        line-height: 1.3;
+      }
+      .board-count {
+        font-size: 12px !important;
+      }
+      .post-top {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+      }
+      .post-top > div:last-child {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .post-meta {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px 12px !important;
+      }
+      .post-meta-item,
+      .post-time {
+        font-size: 12px !important;
+      }
+      .modal-overlay {
+        padding: 16px !important;
+        align-items: flex-start !important;
+        overflow-y: auto !important;
+      }
+      .modal-card,
+      .chat-modal-card {
+        max-width: 100% !important;
+        border-radius: 16px !important;
+      }
+      .chat-modal-card {
+        height: min(78vh, 640px) !important;
+      }
+      .modal-row,
+      .detail-info-grid {
+        grid-template-columns: 1fr !important;
+        display: grid !important;
+      }
+      .modal-btns,
+      .notif-item,
+      .friend-item,
+      .member-item {
+        flex-wrap: wrap !important;
+      }
+      .notif-item-btns {
+        width: 100%;
+      }
+      .notif-item-btns button,
+      .modal-btns button {
+        flex: 1 1 140px;
+      }
+      .chat-input-wrap {
+        gap: 8px;
+      }
+      .chat-input {
+        min-width: 0;
+      }
+    }
+
+    @media (max-width: 480px) {
+      nav {
+        padding: 12px;
+      }
+      .nav-user {
+        gap: 6px;
+      }
+      #nav-username {
+        font-size: 12px !important;
+      }
+      .nav-icon-btn {
+        width: 34px !important;
+        height: 34px !important;
+        font-size: 14px !important;
+      }
+      .nav-logout {
+        width: calc(50% - 3px);
+        text-align: center;
+        justify-content: center;
+      }
+      .main-wrap {
+        padding: 12px !important;
+      }
+      .profile-card {
+        padding: 14px !important;
+      }
+      .profile-top {
+        gap: 10px !important;
+      }
+      .profile-avatar {
+        width: 50px !important;
+        height: 50px !important;
+        font-size: 18px !important;
+      }
+      .profile-name {
+        font-size: 16px !important;
+      }
+      .profile-email {
+        font-size: 12px !important;
+        word-break: break-all;
+      }
+      .tier-badge {
+        padding: 12px !important;
+        gap: 10px !important;
+      }
+      .tier-icon {
+        width: 42px !important;
+        height: 42px !important;
+        font-size: 22px !important;
+      }
+      .tier-name {
+        font-size: 15px !important;
+      }
+      .tier-lp {
+        font-size: 12px !important;
+      }
+      .tier-meta-tag,
+      .pf-tag,
+      .detail-info-val,
+      .member-tag,
+      .chat-header-sub,
+      .chat-msg-time {
+        font-size: 11px !important;
+      }
+      .btn-write,
+      .btn-submit,
+      .btn-cancel,
+      .btn-join,
+      .btn-leave,
+      .chat-send-btn,
+      .btn-friend-del,
+      .btn-notif-accept,
+      .btn-notif-reject,
+      .btn-delete-post {
+        min-height: 42px;
+        padding: 10px 14px !important;
+        font-size: 12px !important;
+      }
+      .board-title,
+      .modal-title,
+      .detail-title {
+        font-size: 17px !important;
+      }
+      .post-card {
+        padding: 14px !important;
+      }
+      .post-game-badge,
+      .post-status {
+        font-size: 11px !important;
+      }
+      .post-title {
+        font-size: 15px !important;
+        line-height: 1.4;
+      }
+      .detail-game-header,
+      .detail-section-label,
+      .chat-header {
+        margin-bottom: 12px;
+      }
+      .modal-card {
+        padding: 16px !important;
+      }
+      .chat-modal-card {
+        height: min(76vh, 560px) !important;
+      }
+      .chat-messages {
+        padding: 14px !important;
+      }
+      .chat-msg {
+        max-width: 88%;
+      }
+      .chat-input-wrap {
+        padding: 12px !important;
+      }
+      .modal-field input,
+      .modal-field select,
+      .modal-field textarea,
+      .chat-input {
+        font-size: 16px !important;
+      }
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <nav>
+    <span class="logo-name" style="font-size:16px;font-weight:600;color:var(--accent)">Deai - 파티찾기</span>
+    <div class="nav-user">
+      <div class="nav-avatar" id="nav-avatar">{{ username|slice:":1"|upper }}</div>
+      <span style="font-size:13px;color:var(--text)" id="nav-username">{{ username }}</span>
+      {% if username == 'admin' %}
+      <button class="nav-icon-btn" onclick="navigateTo('/admin-panel/')" title="관리자 패널"
+              style="color:#ef4444;border-color:rgba(239,68,68,0.35)">🛡</button>
+      {% endif %}
+      <button class="nav-icon-btn" onclick="openProfileModal()" title="프로필">👤</button>
+      <button class="nav-icon-btn" onclick="openFriendModal()" title="친구 목록">🤷‍♀️</button>
+      <button class="nav-icon-btn" id="btn-my-posts" onclick="toggleMyPosts()" title="내 게시글">📋</button>
+      <button class="nav-icon-btn" onclick="location.reload()" title="새로고침">🔄</button>
+      <button class="nav-icon-btn" onclick="openReportModal()" title="유저 신고">🚨</button>
+      <div class="nav-notif-wrap">
+        <button class="nav-icon-btn" id="btn-notif" onclick="openNotifModal()" title="알림">🔔</button>
+        <span class="notif-badge" id="notif-badge" style="display:none">0</span>
+      </div>
+      <button class="nav-logout" onclick="navigateTo('/selectGame/')">게임 변경/추가</button>
+      <button class="nav-logout" onclick="navigateTo('/RiotSearch/')">라이엇 전적조회</button>
+      <button class="nav-logout" onclick="handleLogout()" style="margin-left:4px">로그아웃</button>
+    </div>
+  </nav>
+
+  <div class="main-wrap">
+    <div class="main-inner">
+
+      <aside class="sidebar">
+
+        <div class="profile-card">
+          <div class="profile-top">
+            <div class="profile-avatar" id="profile-avatar">{{ username|slice:":1"|upper }}</div>
+            <div>
+              <div class="profile-name"  id="profile-name">{{ username }}</div>
+              <div class="profile-email" id="profile-email">{{ email }}</div>
+            </div>
+          </div>
+          <div class="tier-badge" id="tier-badge" style="display:none">
+            <div class="tier-icon" id="tier-icon">💎</div>
+            <div class="tier-info" style="flex:1">
+              <div class="tier-name" id="tier-name">—</div>
+              <div class="tier-lp"  id="tier-lp" style="margin-bottom:6px">— 점</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+                <span class="tier-meta-tag" id="tier-nametag"  style="display:none"></span>
+                <span class="tier-meta-tag" id="tier-position" style="display:none"></span>
+                <span class="tier-meta-tag" id="tier-best"     style="display:none"></span>
+              </div>
+            </div>
+          </div>
+          <div class="profile-games-label">내가 하는 게임</div>
+          <div class="profile-games" id="profile-games">
+          </div>
+          <button class="btn-write" onclick="openModal()">
+            + 파티 모집 글 작성
+          </button>
+        </div>
+
+      </aside>
+
+      <div class="board-wrap">
+        <div class="game-tabs" id="game-tabs">
+        </div>
+        <div class="board-header">
+          <h2 class="board-title" id="board-title">전체 파티 모집</h2>
+          <span class="board-count" id="board-count">0개 게시글</span>
+        </div>
+        <div class="post-list" id="post-list">
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <div class="modal-overlay" id="modal" onclick="handleOverlayClick(event)">
+    <div class="modal-card">
+      <div class="modal-title">파티 모집 글 작성</div>
+
+      <div class="modal-field">
+        <label class="modal-label">게임 선택</label>
+        <select class="modal-select" id="modal-game">
+        </select>
+      </div>
+
+      <div class="modal-field">
+        <label class="modal-label">제목</label>
+        <input class="modal-input" id="modal-title-input" type="text" placeholder="예) 다이아 이상 칼바람 같이 하실 분">
+      </div>
+
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-label">현재 인원</label>
+          <select class="modal-select" id="modal-current">
+            <option value="1">1명 (나 혼자)</option>
+            <option value="2">2명</option>
+            <option value="3">3명</option>
+            <option value="4">4명</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">모집 인원</label>
+          <select class="modal-select" id="modal-total">
+            <option value="2">2명</option>
+            <option value="3">3명</option>
+            <option value="4">4명</option>
+            <option value="5" selected>5명</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-field">
+        <label class="modal-label">티어 조건</label>
+        <select class="modal-select" id="modal-tier">
+          <option value="무관">티어 무관</option>
+          <option value="아이언~브론즈">아이언 ~ 브론즈</option>
+          <option value="실버~골드">실버 ~ 골드</option>
+          <option value="플래티넘">플래티넘</option>
+          <option value="다이아">다이아</option>
+          <option value="마스터">마스터</option>
+        </select>
+      </div>
+
+      <div class="modal-field">
+        <label class="modal-label">한마디 <span style="color:var(--muted);font-weight:400">(선택)</span></label>
+        <textarea class="modal-textarea" id="modal-desc" placeholder="플레이 스타일, 요구사항 등을 자유롭게 적어주세요"></textarea>
+      </div>
+
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal()">취소</button>
+        <button class="btn-submit" onclick="submitPost()">게시글 등록</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+    // user data load
+  let SELECTED_GAMES = [];  // DB에서 받아온 데이터로 채워짐
+
+
+  // icons
+  const TIER_ICONS = {
+    '아이언':'🩶', '브론즈':'🥉', '실버':'🥈', '골드':'🥇',
+    '플래티넘':'🩵', '에메랄드':'💚', '다이아몬드':'💎', '마스터':'🔮',
+    '그랜드마스터':'🔴', '챌린저':'👑',
+    // 발로란트
+    '어센던트':'🔷', '이모탈':'🔴', '레디언트':'👑',
+    // 오버워치
+    '탑500':'👑',
+    // 피파
+    '슈퍼챔피언스':'🏆', '챔피언스1':'👑', '챔피언스2':'🔴',
+    '슈퍼챌린저1':'💎', '슈퍼챌린저2':'💎',
+    '골드1':'🥇', '골드2':'🥇', '실버1':'🥈', '실버2':'🥈',
+    // 원신
+    '세계1':'🌿','세계2':'🌿','세계3':'⭐','세계4':'⭐',
+    '세계5':'🌟','세계6':'🌟','세계7':'💫','세계8':'✨',
+  };
+
+  const GAME_META = {
+    lol    : { name:'리그 오브 레전드', icon:'⚔️', color:'#c89b3c', scoreLabel:'LP'    },
+    val    : { name:'발로란트',         icon:'🎯', color:'#ef4444', scoreLabel:'RR'    },
+    ow     : { name:'오버워치 2',       icon:'🦸', color:'#f5a623', scoreLabel:'SR'    },
+    fifa   : { name:'피파 온라인 4',    icon:'⚽', color:'#10b981', scoreLabel:'레이팅' },
+    genshin: { name:'원신',             icon:'🌸', color:'#a78bfa', scoreLabel:'심연층' },
+  };
+
+  async function init() {
+    await loadUserGameInfo();
+    renderProfileGames();
+    renderGameTabs();
+    await loadPosts();
+    renderModalGameSelect();
+    fetchNotifCount();
+    setInterval(fetchNotifCount, 10000);  // nonfiction cycles
+  }
+
+  async function loadUserGameInfo() {
+    try {
+      const data = (typeof DB_GAMES !== 'undefined') ? DB_GAMES : [];
+
+      if (data && data.length > 0) {
+        // DB 데이터를 SELECTED_GAMES 형식으로 변환
+        SELECTED_GAMES = data.map(g => {
+          const meta = GAME_META[g.game_id] || {};
+          return {
+            id         : g.game_id,
+            name       : meta.name       || g.game_id,
+            icon       : meta.icon       || '🎮',
+            color      : meta.color      || '#888',
+            tier       : g.tier,
+            score      : g.score_current,
+            score_best : g.score_best,
+            scoreLabel : meta.scoreLabel || '점수',
+            name_tag   : g.name_tag,
+            sub_info   : g.sub_info,
+          };
+        });
+
+        // 티어 배지 업데이트
+        if (SELECTED_GAMES.length > 0) {
+          const main = SELECTED_GAMES[0];
+          const icon = TIER_ICONS[main.tier] || '🎮';
+          document.getElementById('tier-badge').style.display = 'flex';
+          document.getElementById('tier-icon').textContent    = icon;
+          document.getElementById('tier-name').textContent    = main.tier;
+          document.getElementById('tier-lp').textContent      = `${main.score} ${main.scoreLabel}`;
+          const nametagEl = document.getElementById('tier-nametag');
+          if (main.name_tag) {
+            nametagEl.textContent    = `🎮 ${main.name_tag}`;
+            nametagEl.style.display  = 'inline-block';
+          }
+
+          // 포지션/역할
+          const posEl = document.getElementById('tier-position');
+          if (main.sub_info) {
+            posEl.textContent   = `📍 ${main.sub_info}`;
+            posEl.style.display = 'inline-block';
+          }
+
+          // 최고 점수
+          const bestEl = document.getElementById('tier-best');
+          if (main.score_best) {
+            bestEl.textContent   = `⬆ 최고 ${main.score_best} ${main.scoreLabel}`;
+            bestEl.style.display = 'inline-block';
+          }
+        }
+      } else {
+        // 게임 정보 없으면 선택 페이지로
+        SELECTED_GAMES = [];
+      }
+    } catch (e) {
+      console.error('게임 정보 로드 실패:', e);
+      SELECTED_GAMES = [];
+    }
+  }
+
+  let POSTS = [ // 게시글 저장
+    // { id:1,  gameId:1, icon:'⚔️', game:'리그 오브 레전드', title:'칼바람 나락 5인 빠르게 채울게요!',          author:'빠른손 최', tier:'골드', current:3, total:5,  status:'open', time:'2분 전',  color:'#c89b3c' },
+    // { id:2,  gameId:1, icon:'⚔️', game:'리그 오브 레전드', title:'다이아 이상 솔랭 듀오 구해요 원딜입니다',     author:'ADC장인',   tier:'다이아', current:1, total:2, status:'open', time:'5분 전',  color:'#c89b3c' },
+    // { id:3,  gameId:2, icon:'🔫', game:'배틀그라운드',      title:'스쿼드 4인팟 모집 중 야겜 ㄱ?',             author:'배그고수',  tier:'무관',  current:2, total:4,  status:'open', time:'8분 전',  color:'#e07b39' },
+    // { id:4,  gameId:1, icon:'⚔️', game:'리그 오브 레전드', title:'플레티넘 이상 내전 팀 구합니다 5vs5',         author:'내전마스터', tier:'플래티넘', current:4, total:5, status:'open', time:'11분 전', color:'#c89b3c' },
+    // { id:5,  gameId:4, icon:'🎯', game:'발로란트',          title:'골드~플레 언랭작 듀오 같이 하실 분',         author:'발로신인',  tier:'골드',  current:1, total:2,  status:'open', time:'15분 전', color:'#ef4444' },
+    // { id:6,  gameId:2, icon:'🔫', game:'배틀그라운드',      title:'TPP 스쿼드 채워요 진지하게 1등 목표',        author:'치킨헌터',  tier:'무관',  current:3, total:4,  status:'open', time:'18분 전', color:'#e07b39' },
+    // { id:7,  gameId:1, icon:'⚔️', game:'리그 오브 레전드', title:'마스터 이상 챌린저 도전 팀원 모집',          author:'챌도전자',  tier:'마스터', current:2, total:5, status:'open', time:'22분 전', color:'#c89b3c' },
+    // { id:8,  gameId:4, icon:'🎯', game:'발로란트',          title:'다이아 5스택 모집완료 조만간 다시 올게요',   author:'다이아팀장', tier:'다이아', current:5, total:5, status:'full', time:'30분 전', color:'#ef4444' },
+    // { id:9,  gameId:2, icon:'🔫', game:'배틀그라운드',      title:'솔로 스쿼드 넣어주실 팀 구합니다',           author:'솔스쿼드',  tier:'무관',  current:1, total:4,  status:'open', time:'35분 전', color:'#e07b39' },
+    // { id:10, gameId:1, icon:'⚔️', game:'리그 오브 레전드', title:'실버 탈출 각 잡고 듀오 구합니다 정글 가능', author:'실버탈출',  tier:'실버',  current:1, total:2,  status:'open', time:'40분 전', color:'#c89b3c' },
+  ];
+
+  let activeGameId   = 'all';  // 'all' = 전체
+  let showMyPostsOnly = false;  // 내 게시글 필터
+  let showJoinedOnly  = false;  // 가입한 파티 필터
+
+  // game profile render
+  function renderProfileGames() {
+    document.getElementById('profile-games').innerHTML =
+      SELECTED_GAMES.map(g => `
+        <div class="profile-game-tag" style="--tag-color:${g.color}">
+          <div class="profile-game-tag-top">
+            <span>${g.icon}</span>
+            <strong>${g.name}</strong>
+          </div>
+          <div class="profile-game-tag-info">
+            ${g.name_tag   ? `<span>🎮 ${g.name_tag}</span>` : ''}
+            ${g.tier       ? `<span>🏅 ${g.tier}</span>`     : ''}
+            ${g.sub_info   ? `<span>📍 ${g.sub_info}</span>` : ''}
+            ${g.score      ? `<span>⚡ ${g.score} ${g.scoreLabel}</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+  }
+
+  // game
+  function renderGameTabs() {
+    const tabs      = document.getElementById('game-tabs');
+    const all       = [{ id:'all', name:'전체', icon:'🎮' }, ...SELECTED_GAMES];
+    const hasJoined = POSTS.some(p => p.joinedByMe && p.author !== document.getElementById('profile-name').textContent);
+
+    const gameTabs = all.map(g => `
+      <button class="game-tab ${g.id === activeGameId && !showJoinedOnly ? 'active' : ''}"
+              onclick="filterGame('${g.id}')">
+        <span class="game-tab-icon">${g.icon}</span>
+        ${g.name}
+      </button>
+    `).join('');
+
+    const joinedTab = `
+      <button class="game-tab ${showJoinedOnly ? 'active' : ''}"
+              style="${!hasJoined ? 'opacity:0.4;cursor:default;' : 'border-color:rgba(16,185,129,0.35);color:#10b981;'}"
+              onclick="${hasJoined ? 'toggleJoinedOnly()' : ''}">
+        <span class="game-tab-icon">✅</span>
+        내가 가입한 파티
+      </button>`;
+
+    tabs.innerHTML = gameTabs + joinedTab;
+  }
+
+  // rendering post list
+  function renderPosts() {
+    const list     = document.getElementById('post-list');
+    const title    = document.getElementById('board-title');
+    const countEl  = document.getElementById('board-count');
+
+    const myName     = document.getElementById('profile-name').textContent;
+    let filtered = activeGameId === 'all'
+      ? POSTS
+      : POSTS.filter(p => p.gameId === activeGameId);
+
+    // my post filter
+    if (showMyPostsOnly) {
+      filtered = filtered.filter(p => p.author === myName);
+    }
+
+    // joined party filter (내가 작성한 글 제외)
+    if (showJoinedOnly) {
+      filtered = POSTS.filter(p => p.joinedByMe && p.author !== myName);
+    }
+
+    const gameName = activeGameId === 'all'
+      ? '전체'
+      : SELECTED_GAMES.find(g => g.id === activeGameId)?.name;
+
+    title.textContent = showJoinedOnly  ? '✅ 내가 가입한 파티'
+                      : showMyPostsOnly ? '📋 내가 쓴 게시글'
+                      : `${gameName} 파티 모집`;
+    countEl.textContent = `${filtered.length}개 게시글`;
+
+    if (filtered.length === 0) {
+      list.innerHTML = `
+        <div class="post-empty">
+          <div class="post-empty-icon">🎮</div>
+          아직 게시글이 없어요.<br>첫 번째 파티를 모집해보세요!
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = filtered.map(post => {
+      const tierIcon = Object.entries(TIER_ICONS).find(([k]) =>
+        post.tier.includes(k))?.[1] || '🔘';
+
+      const isMyPost = post.author === myName;
+
+      return `
+        <div class="post-card-wrap">
+          <div class="post-card" style="--post-color:${post.color}" onclick="openDetailModal(${post.id})">
+            <div class="post-top">
+              <div class="post-game-badge">
+                ${post.icon} ${post.game}
+              </div>
+              <div class="post-title">${post.title}</div>
+              <div style="display:flex; align-items:center; gap:8px; flex-shrink:0">
+                ${isMyPost ? `<button class="btn-delete-post" onclick="event.stopPropagation(); deletePost(${post.id})">🗑 삭제</button>` : ''}
+                <div class="post-status ${post.status}">
+                  ${post.status === 'open' ? '모집 중' : '모집 완료'}
+                </div>
+              </div>
+            </div>
+            <div class="post-meta">
+              <div class="post-meta-item">
+                👤 <strong>${adminTag(post.author)}</strong>
+              </div>
+              <div class="post-meta-item">
+                ${tierIcon} <strong>${post.tier}</strong> 이상
+              </div>
+              <div class="post-meta-item">
+                🧑‍🤝‍🧑 <strong>${post.current}/${post.total}명</strong>
+              </div>
+              <div class="post-time">${post.time}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderModalGameSelect() {
+    document.getElementById('modal-game').innerHTML =
+      SELECTED_GAMES.map(g => `
+        <option value="${g.id}">${g.icon} ${g.name}</option>
+      `).join('');
+  }
+
+  // game tp filter , m filter
+  function toggleMyPosts() {
+    showMyPostsOnly = !showMyPostsOnly;
+    if (showMyPostsOnly) showJoinedOnly = false;
+    const btn = document.getElementById('btn-my-posts');
+    if (showMyPostsOnly) {
+      btn.classList.add('active');
+      btn.title = '전체 게시글 보기';
+    } else {
+      btn.classList.remove('active');
+      btn.title = '내 게시글 보기';
+    }
+    renderPosts();
+  }
+
+  function toggleJoinedOnly() {
+    showJoinedOnly = !showJoinedOnly;
+    if (showJoinedOnly) showMyPostsOnly = false;
+    renderGameTabs();
+    renderPosts();
+  }
+
+  function filterGame(id) {
+    showJoinedOnly = false;
+    activeGameId   = id;
+    renderGameTabs();
+    loadPosts();
+  }
+  function showError(msg) {
+    // 에러 메시지 표시 영역이 있으면 거기에, 없으면 alert
+    const el = document.getElementById('error-msg');
+    if (el) el.textContent = msg;
+    else alert(msg);
+  }
+
+  // Modal open / close
+  function openModal()  { document.getElementById('modal').classList.add('open'); }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('modal')) closeModal();
+  }
+
+  // post to db
+  async function submitPost() {
+    const gameId  = document.getElementById('modal-game').value;
+    const title   = document.getElementById('modal-title-input').value.trim();
+    const current = Number(document.getElementById('modal-current').value);
+    const total   = Number(document.getElementById('modal-total').value);
+    const tier    = document.getElementById('modal-tier').value;
+    const body    = document.getElementById('modal-desc').value.trim();
+
+    if (!title) {
+      document.getElementById('modal-title-input').focus();
+      return;
+    }
+
+    try {
+      const res  = await fetch('/api/post/create/', {
+        method : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken' : getCookie('csrftoken'),
+        },
+        body: JSON.stringify({
+          game_id        : gameId,
+          post_title     : title,
+          post_body      : body,
+          current_member : current,
+          total_member   : total,
+          tier_condition : tier,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        closeModal();
+        activeGameId = 'all';
+        renderGameTabs();
+        await loadPosts();
+        document.getElementById('modal-title-input').value = '';
+        document.getElementById('modal-desc').value = '';
+      } else {
+        alert(data.message || '게시글 등록 실패');
+      }
+    } catch (e) {
+      alert('네트워크 오류가 발생했습니다.');
+    }
+  }
+
+  // post DB read
+  // post leave
+  async function leavePost() {
+    if (!currentPostId) return;
+    if (!confirm('파티에서 탈퇴할까요?')) return;
+
+    try {
+      const res  = await fetch(`/api/post/leave/${currentPostId}/`, {
+        method : 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        const post = POSTS.find(p => p.id === currentPostId);
+        if (post) {
+          post.current    = data.current_member;
+          post.status     = data.is_open ? 'open' : 'full';
+          post.joinedByMe = false;
+        }
+
+        // leave -> partic
+        const btnLeave = document.getElementById('btn-leave');
+        const btnJoin  = document.getElementById('btn-join');
+        btnLeave.style.display = 'none';
+        btnJoin.style.display  = 'inline-block';
+        btnJoin.textContent    = '🙋 참여하기';
+        btnJoin.className      = 'btn-join';
+        btnJoin.disabled       = false;
+
+        // member count 
+        document.getElementById('detail-members').textContent =
+          `${data.current_member} / ${data.total_member}명`;
+
+        // status update
+        const statusEl = document.getElementById('detail-status');
+        statusEl.textContent = '모집 중';
+        statusEl.className   = 'detail-status-badge open';
+
+        await loadPosts();
+      } else {
+        alert(data.message || '탈퇴 실패');
+      }
+    } catch (e) {
+      alert('네트워크 오류가 발생했습니다.');
+    }
+  }
+
+  // post join .
+  async function joinPost() {
+    if (!currentPostId) return;
+    try {
+      const res  = await fetch(`/api/post/join/${currentPostId}/`, {
+        method : 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      });
+      const data = await res.json();
+      if (data.success) {
+        const post    = POSTS.find(p => p.id === currentPostId);
+        const btnJoin = document.getElementById('btn-join');
+        if (data.status === 'pending') {
+          if (post) post.pendingByMe = true;
+          btnJoin.textContent = '⏳ 수락 대기중';
+          btnJoin.className   = 'btn-join joined';
+          btnJoin.disabled    = true;
+        }
+        await loadPosts();
+      } else {
+        alert(data.message || '참여 실패');
+      }
+    } catch (e) {
+      alert('네트워크 오류가 발생했습니다.');
+    }
+  }
+
+  // del post
+  async function deletePost(postId) {
+    if (!confirm('게시글을 삭제할까요?')) return;
+
+    try {
+      const res  = await fetch(`/api/post/delete/${postId}/`, {
+        method : 'DELETE',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        await loadPosts();
+      } else {
+        alert(data.message || '삭제 실패');
+      }
+    } catch (e) {
+      alert('네트워크 오류가 발생했습니다.');
+    }
+  }
+
+  async function loadPosts() {
+    try {
+      const url = activeGameId === 'all'
+        ? '/api/post/list/'
+        : `/api/post/list/?game_id=${activeGameId}`;
+
+      const res  = await fetch(url);
+      const data = await res.json();
+
+      if (data.success) {
+        POSTS = data.posts.map(p => ({
+          id           : p.id,
+          gameId       : p.game_id,
+          icon         : GAME_META[p.game_id]?.icon  || '🎮',
+          game         : GAME_META[p.game_id]?.name  || p.game_id,
+          color        : GAME_META[p.game_id]?.color || '#888',
+          title        : p.post_title,
+          body         : p.post_body         || '',
+          author       : stripHtml(p.author),
+          name_tag     : p.author_name_tag   || '',
+          authorTier   : p.author_tier       || '',
+          authorSubInfo: p.author_sub_info   || '',
+          tier         : p.tier_condition,
+          current      : p.current_member,
+          total        : p.total_member,
+          status       : p.is_open ? 'open' : 'full',
+          joinedByMe   : p.joined_by_me  || false,
+          pendingByMe  : p.pending_by_me || false,
+          alreadyInParty: p.already_in_party || false,
+          time         : p.uploaded_at,
+        }));
+        renderGameTabs();
+        renderPosts();
+      }
+    } catch (e) {
+      console.error('게시글 로드 실패:', e);
+      renderPosts();
+    }
+  }
+
+
+  // post c_ modal read
+  function openDetailModal(postId) {
+    const post = POSTS.find(p => p.id === postId);
+    if (!post) return;
+
+    // 게임 헤더
+    const hdr = document.getElementById('detail-game-header');
+    hdr.innerHTML      = `<span style="font-size:20px">${post.icon}</span> ${post.game}`;
+    hdr.style.background  = `${post.color}15`;
+    hdr.style.borderColor = `${post.color}40`;
+
+    // 제목
+    document.getElementById('detail-title').textContent = post.title;
+
+    // 상태 배지
+    const statusEl = document.getElementById('detail-status');
+    statusEl.textContent = post.status === 'open' ? '모집 중' : '모집 완료';
+    statusEl.className   = `detail-status-badge ${post.status}`;
+
+    // 시간
+    document.getElementById('detail-time').textContent = post.time;
+
+    // 작성자 정보
+    document.getElementById('detail-author').innerHTML         = adminTag(post.author) || '—';
+    document.getElementById('detail-nametag').textContent     = post.name_tag      || '—';
+    document.getElementById('detail-author-tier').textContent = post.authorTier    || '—';
+    document.getElementById('detail-sub-info').textContent    = post.authorSubInfo || '—';
+
+    // 모집 정보
+    document.getElementById('detail-members').textContent   = `${post.current} / ${post.total}명`;
+    document.getElementById('detail-tier-cond').textContent = post.tier || '무관';
+
+    // 한마디
+    const bodyWrap = document.getElementById('detail-body-wrap');
+    if (post.body) {
+      document.getElementById('detail-body').textContent = post.body;
+      bodyWrap.style.display = 'block';
+    } else {
+      bodyWrap.style.display = 'none';
+    }
+
+    currentPostId = postId;  // 채팅방 ID용
+
+    // 멤버 목록 로드
+    loadMemberList(postId);
+
+    // 참여하기 / 탈퇴하기 버튼 상태
+    const myName   = document.getElementById('profile-name').textContent;
+    const btnJoin  = document.getElementById('btn-join');
+    const btnLeave = document.getElementById('btn-leave');
+    const isOwner  = post.author === myName;
+
+    if (isOwner) {
+      btnJoin.style.display  = 'none';
+      btnLeave.style.display = 'none';
+    } else if (post.joinedByMe) {
+      btnJoin.style.display  = 'none';
+      btnLeave.style.display = 'inline-block';
+    } else if (post.pendingByMe) {
+      btnLeave.style.display = 'none';
+      btnJoin.style.display  = 'inline-block';
+      btnJoin.textContent    = '⏳ 수락 대기중';
+      btnJoin.className      = 'btn-join joined';
+      btnJoin.disabled       = true;
+    } else {
+      btnLeave.style.display = 'none';
+      btnJoin.style.display  = 'inline-block';
+      if (post.status === 'full') {
+        btnJoin.textContent = '모집 완료';
+        btnJoin.className   = 'btn-join full';
+        btnJoin.disabled    = true;
+      } else if (post.alreadyInParty) {
+        btnJoin.textContent = '다른 파티 참여 중';
+        btnJoin.className   = 'btn-join joined';
+        btnJoin.disabled    = true;
+      } else {
+        btnJoin.textContent = '🙋 참여하기';
+        btnJoin.className   = 'btn-join';
+        btnJoin.disabled    = false;
+      }
+    }
+
+    document.getElementById('detail-modal').classList.add('open');
+  }
+
+  // member profile load
+  async function loadMemberList(postId) {
+    const container = document.getElementById('detail-member-list');
+    container.innerHTML = '<div class="chat-empty" style="padding:12px 0">불러오는 중...</div>';
+
+    try {
+      const res  = await fetch(`/api/post/members/${postId}/`);
+      const data = await res.json();
+
+      if (!data.success || data.members.length === 0) {
+        container.innerHTML = '<div class="chat-empty" style="padding:12px 0">파티원이 없어요.</div>';
+        return;
+      }
+
+      container.innerHTML = data.members.map(m => `
+        <div class="member-item" onclick="openUserProfileModal('${m.username}')">
+          <div class="member-avatar ${m.is_host ? 'host' : 'guest'}">
+            ${m.username.slice(0,1).toUpperCase()}
+          </div>
+          <div class="member-info">
+            <div class="member-name">${adminTag(m.username)}</div>
+            ${m.name_tag ? `<div class="member-tag">🎮 ${m.name_tag}</div>` : ''}
+          </div>
+          ${m.is_host ? '<span class="member-badge">방장</span>' : ''}
+        </div>
+      `).join('');
+    } catch(e) {
+      container.innerHTML = '<div class="chat-empty" style="padding:12px 0">불러오기 실패</div>';
+    }
+  }
+
+  // other member profile modal
+  async function openUserProfileModal(username) {
+    document.getElementById('upm-username').textContent = username;
+    const gamesList = document.getElementById('upm-games-list');
+    gamesList.innerHTML = '<div class="chat-empty" style="padding:12px 0">불러오는 중...</div>';
+    document.getElementById('user-profile-modal').classList.add('open');
+
+    try {
+      const res  = await fetch(`/api/user/profile/${encodeURIComponent(username)}/`);
+      const data = await res.json();
+
+      if (!data.success || data.games.length === 0) {
+        gamesList.innerHTML = '<div class="chat-empty" style="padding:12px 0">등록된 게임이 없어요.</div>';
+        return;
+      }
+
+      gamesList.innerHTML = data.games.map(g => `
+        <div class="pf-game-card">
+          <div class="pf-game-icon">${g.icon}</div>
+          <div class="pf-game-info">
+            <div class="pf-game-name">${g.name}</div>
+            <div class="pf-game-detail" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+              ${g.name_tag   ? `<span class="pf-tag">🎮 ${g.name_tag}</span>`   : ''}
+              ${g.tier       ? `<span class="pf-tag">🏅 ${g.tier}</span>`       : ''}
+              ${g.sub_info   ? `<span class="pf-tag">🎯 ${g.sub_info}</span>`   : ''}
+              ${g.score      ? `<span class="pf-tag">📊 현재 ${g.score} ${g.score_label}</span>`    : ''}
+              ${g.score_best ? `<span class="pf-tag">⬆ 최고 ${g.score_best} ${g.score_label}</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    } catch(e) {
+      gamesList.innerHTML = '<div class="chat-empty" style="padding:12px 0">불러오기 실패</div>';
+    }
+  }
+
+  function closeUserProfileModal() {
+    document.getElementById('user-profile-modal').classList.remove('open');
+  }
+
+  function handleUserProfileOverlayClick(e) {
+    if (e.target === document.getElementById('user-profile-modal')) closeUserProfileModal();
+  }
+
+  // ── 친구 프로필 모달 ──
+  let dmTargetUsername = null;  // DM 상대방
+
+  async function openFriendProfileModal(username) {
+    dmTargetUsername = username;
+    document.getElementById('friend-modal').classList.remove('open');
+    document.getElementById('fpm-username').innerHTML  = adminTag(username);
+    const gamesList = document.getElementById('fpm-games-list');
+    gamesList.innerHTML = '<div class="chat-empty" style="padding:12px 0">불러오는 중...</div>';
+    document.getElementById('friend-profile-modal').classList.add('open');
+    try {
+      const res  = await fetch(`/api/user/profile/${encodeURIComponent(username)}/`);
+      const data = await res.json();
+      if (!data.success || data.games.length === 0) {
+        gamesList.innerHTML = '<div class="chat-empty" style="padding:12px 0">등록된 게임이 없어요.</div>';
+        return;
+      }
+      gamesList.innerHTML = data.games.map(g => `
+        <div class="pf-game-card">
+          <div class="pf-game-icon">${g.icon}</div>
+          <div class="pf-game-info">
+            <div class="pf-game-name">${g.name}</div>
+            <div class="pf-game-detail" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+              ${g.name_tag   ? `<span class="pf-tag">🎮 ${g.name_tag}</span>` : ''}
+              ${g.tier       ? `<span class="pf-tag">🏅 ${g.tier}</span>`     : ''}
+              ${g.sub_info   ? `<span class="pf-tag">🎯 ${g.sub_info}</span>` : ''}
+              ${g.score      ? `<span class="pf-tag">📊 ${g.score} ${g.score_label}</span>`      : ''}
+              ${g.score_best ? `<span class="pf-tag">⬆ ${g.score_best} ${g.score_label}</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    } catch(e) {
+      gamesList.innerHTML = '<div class="chat-empty" style="padding:12px 0">불러오기 실패</div>';
+    }
+  }
+
+  function closeFriendProfileModal() {
+    document.getElementById('friend-profile-modal').classList.remove('open');
+  }
+
+  function handleFriendProfileOverlayClick(e) {
+    if (e.target === document.getElementById('friend-profile-modal')) closeFriendProfileModal();
+  }
+
+  // ── DM 채팅 모달 ──
+  let dmSocket = null;
+
+  function getDMRoomName(a, b) { return [a, b].sort().join('__'); }
+
+  async function openDMModal() {
+    if (!dmTargetUsername) return;
+    const myName = document.getElementById('profile-name').textContent;
+    document.getElementById('friend-profile-modal').classList.remove('open');
+    document.getElementById('dm-header-title').textContent = dmTargetUsername;
+    document.getElementById('dm-header-sub').textContent   = '1:1 채팅';
+    document.getElementById('dm-messages').innerHTML = '<div class="chat-empty">불러오는 중...</div>';
+    document.getElementById('dm-input').value = '';
+    document.getElementById('dm-modal').classList.add('open');
+    setTimeout(() => document.getElementById('dm-input').focus(), 100);
+
+    if (dmSocket) { dmSocket.close(); dmSocket = null; }
+    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const roomName = getDMRoomName(myName, dmTargetUsername);
+    dmSocket = new WebSocket(`${protocol}${window.location.host}/ws/dm/${roomName}/`);
+    dmSocket.onopen  = () => console.log('[DM WS] 연결:', roomName);
+    dmSocket.onclose = () => console.log('[DM WS] 종료');
+    dmSocket.onerror = (err) => console.error('[DM WS] 오류:', err);
+    dmSocket.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      appendDMMessage(data.username, data.message, data.username === myName, data.time);
+    };
+
+    await loadDMHistory(dmTargetUsername);
+  }
+
+  function closeDMModal() {
+    if (dmSocket) { dmSocket.close(); dmSocket = null; }
+    document.getElementById('dm-modal').classList.remove('open');
+  }
+
+  function handleDMOverlayClick(e) {
+    if (e.target === document.getElementById('dm-modal')) closeDMModal();
+  }
+
+  async function loadDMHistory(username) {
+    try {
+      const res    = await fetch(`/api/dm/history/${encodeURIComponent(username)}/`);
+      const data   = await res.json();
+      const myName = document.getElementById('profile-name').textContent;
+      const container = document.getElementById('dm-messages');
+      if (!data.success || data.messages.length === 0) {
+        container.innerHTML = '<div class="chat-empty">대화를 시작해보세요! 👋</div>';
+        return;
+      }
+      container.innerHTML = '';
+      data.messages.forEach(m => appendDMMessage(m.username, m.message, m.username === myName, m.time));
+    } catch(e) {
+      document.getElementById('dm-messages').innerHTML =
+        '<div class="chat-empty">내역을 불러오지 못했어요.</div>';
+    }
+  }
+
+  function sendDM() {
+    const input = document.getElementById('dm-input');
+    const text  = input.value.trim();
+    if (!text || !dmTargetUsername) return;
+    if (!dmSocket || dmSocket.readyState !== WebSocket.OPEN) {
+      alert('연결이 끊겼어요. 채팅창을 다시 열어주세요.');
+      return;
+    }
+    const myName = document.getElementById('profile-name').textContent;
+    dmSocket.send(JSON.stringify({ message: text, sender: myName, receiver: dmTargetUsername }));
+    input.value = '';
+  }
+
+  function appendDMMessage(username, text, isMe, timeStr) {
+    const container = document.getElementById('dm-messages');
+    const empty = container.querySelector('.chat-empty');
+    if (empty) empty.remove();
+    const time = timeStr || (() => {
+      const now = new Date();
+      return `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+    })();
+    const el = document.createElement('div');
+    el.className = `chat-msg ${isMe ? 'me' : 'other'}`;
+    el.innerHTML = `
+      ${!isMe ? `<div class="chat-msg-name">${adminTag(username)}</div>` : ''}
+      <div class="chat-msg-bubble">${text.replace(/</g,'&lt;')}</div>
+      <div class="chat-msg-time">${time}</div>`;
+    container.appendChild(el);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function closeDetailModal() {
+    document.getElementById('detail-modal').classList.remove('open');
+  }
+
+  function handleDetailOverlayClick(e) {
+    if (e.target === document.getElementById('detail-modal')) closeDetailModal();
+  }
+
+
+  // WebSocket
+  let chatSocket   = null;
+  let currentPostId = null;
+
+  async function openChatModal() {
+    const post = POSTS.find(p => p.id === currentPostId);
+
+    if (post) {
+      document.getElementById('chat-header-icon').textContent  = post.icon;
+      document.getElementById('chat-header-title').textContent =
+        post.title.length > 22 ? post.title.slice(0, 22) + '…' : post.title;
+      document.getElementById('chat-header-sub').textContent   =
+        post.author === 'admin'
+          ? undefined
+          : `모집장: ${stripHtml(post.author)} · ${post.game}`;
+      if (post.author === 'admin') {
+        document.getElementById('chat-header-sub').innerHTML =
+          `모집장: <span style="color:#ef4444;font-weight:700">👑 admin</span> · ${post.game}`;
+      }
+    }
+
+    document.getElementById('chat-messages').innerHTML =
+      '<div class="chat-empty">불러오는 중...</div>';
+
+    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const roomName = `post_${currentPostId}`;
+    chatSocket = new WebSocket(`${protocol}${window.location.host}/ws/chat/${roomName}/`);
+
+    chatSocket.onopen  = () => console.log('[WS] 파티채팅 연결:', roomName);
+    chatSocket.onclose = () => console.log('[WS] 파티채팅 종료');
+    chatSocket.onerror = (err) => console.error('[WS] 오류:', err);
+    chatSocket.onmessage = (e) => {
+      const data   = JSON.parse(e.data);
+      const myName = document.getElementById('profile-name').textContent;
+      appendMessage(data.username, data.message, data.username === myName, data.time);
+    };
+
+    document.getElementById('chat-modal').classList.add('open');
+    setTimeout(() => document.getElementById('chat-input').focus(), 100);
+    await loadChatHistory(currentPostId);
+  }
+
+  async function loadChatHistory(postId) {
+    try {
+      const res    = await fetch(`/api/chat/history/${postId}/`);
+      const data   = await res.json();
+      const myName = document.getElementById('profile-name').textContent;
+      const container = document.getElementById('chat-messages');
+      if (!data.success || data.messages.length === 0) {
+        container.innerHTML = '<div class="chat-empty">아직 대화가 없어요. 먼저 인사해보세요! 👋</div>';
+        return;
+      }
+      container.innerHTML = '';
+      data.messages.forEach(m => appendMessage(m.username, m.message, m.username === myName, m.time));
+    } catch(e) {
+      document.getElementById('chat-messages').innerHTML =
+        '<div class="chat-empty">내역을 불러오지 못했어요.</div>';
+    }
+  }
+
+  function closeChatModal() {
+    if (chatSocket) {
+      chatSocket.close();
+      chatSocket = null;
+    }
+    document.getElementById('chat-modal').classList.remove('open');
+  }
+
+  function handleChatOverlayClick(e) {
+    if (e.target === document.getElementById('chat-modal')) closeChatModal();
+  }
+
+  function sendMessage() {
+    const input  = document.getElementById('chat-input');
+    const text   = input.value.trim();
+
+    if (!text) {
+    console.log("텍스트 없음");
+    return;
+    }
+    if (!chatSocket) {
+      console.log("소켓 없음");
+      return;
+    }
+    if (chatSocket.readyState !== WebSocket.OPEN) {
+      console.log("소켓 열리지 않음");
+      return;
+    }
+    if (!text || !chatSocket || chatSocket.readyState !== WebSocket.OPEN) return;
+
+    const myName = document.getElementById('profile-name').textContent;
+    chatSocket.send(JSON.stringify({ message: text, username: myName, post_id: currentPostId }));
+    input.value = '';
+  }
+
+  function appendMessage(username, text, isMe, timeStr) {
+    const container = document.getElementById('chat-messages');
+    const empty = container.querySelector('.chat-empty');
+    if (empty) empty.remove();
+    const time = timeStr || (() => {
+      const now = new Date();
+      return `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+    })();
+    const msgEl = document.createElement('div');
+    msgEl.className = `chat-msg ${isMe ? 'me' : 'other'}`;
+    msgEl.innerHTML = `
+      ${!isMe ? `<div class="chat-msg-name">${adminTag(username)}</div>` : ''}
+      <div class="chat-msg-bubble">${text.replace(/</g,'&lt;')}</div>
+      <div class="chat-msg-time">${time}</div>`;
+    container.appendChild(msgEl);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  
+  // profile modal
+  function openProfileModal() {
+    // info
+    document.getElementById('pf-username').textContent =
+      document.getElementById('profile-name').textContent;
+    document.getElementById('pf-email').textContent =
+      document.getElementById('profile-email').textContent;
+
+    // gmae list
+    const gamesList = document.getElementById('pf-games-list');
+    if (SELECTED_GAMES.length === 0) {
+      gamesList.innerHTML = '<div class="chat-empty" style="padding:16px 0">등록된 게임이 없습니다.</div>';
+    } else {
+      gamesList.innerHTML = SELECTED_GAMES.map(g => `
+        <div class="pf-game-card">
+          <div class="pf-game-icon">${g.icon}</div>
+          <div class="pf-game-info">
+            <div class="pf-game-name">${g.name}</div>
+            <div class="pf-game-detail" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+              ${g.name_tag   ? `<span class="pf-tag">🎮 ${g.name_tag}</span>`   : ''}
+              ${g.tier       ? `<span class="pf-tag">🏅 ${g.tier}</span>`       : ''}
+              ${g.sub_info   ? `<span class="pf-tag">🎯 ${g.sub_info}</span>`   : ''}
+              ${g.score      ? `<span class="pf-tag">📊 현재 ${g.score} ${g.scoreLabel}</span>`    : ''}
+              ${g.score_best ? `<span class="pf-tag">⬆ 최고 ${g.score_best} ${g.scoreLabel}</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('profile-modal').classList.add('open');
+  }
+
+  function closeProfileModal() {
+    document.getElementById('profile-modal').classList.remove('open');
+  }
+
+  function handleProfileOverlayClick(e) {
+    if (e.target === document.getElementById('profile-modal')) closeProfileModal();
+  }
+
+  // friend modal -> link -> api
+  async function openFriendModal() {
+    await renderFriendList();
+    document.getElementById('friend-modal').classList.add('open');
+    setTimeout(() => document.getElementById('friend-search-input').focus(), 100);
+  }
+
+  function closeFriendModal() {
+    document.getElementById('friend-modal').classList.remove('open');
+    document.getElementById('friend-search-input').value = '';
+    document.getElementById('friend-search-result').innerHTML = '';
+  }
+
+  function handleFriendOverlayClick(e) {
+    if (e.target === document.getElementById('friend-modal')) closeFriendModal();
+  }
+
+  async function renderFriendList() {
+    const container = document.getElementById('friend-list');
+    container.innerHTML = '<div class="chat-empty" style="padding:16px 0">불러오는 중...</div>';
+    try {
+      const res  = await fetch('/api/friend/list/');
+      const data = await res.json();
+      if (!data.success || data.friends.length === 0) {
+        container.innerHTML = '<div class="chat-empty" style="padding:20px 0">친구를 추가해보세요 👋</div>';
+        return;
+      }
+      container.innerHTML = data.friends.map(f => `
+        <div class="friend-item" style="cursor:pointer" onclick="openFriendProfileModal('${f.username}')">
+          <div class="friend-avatar">${f.username.slice(0,1).toUpperCase()}</div>
+          <div class="friend-name">${adminTag(f.username)}</div>
+          <button class="btn-friend-del" onclick="event.stopPropagation(); deleteFriend(${f.id})">삭제</button>
+        </div>
+      `).join('');
+    } catch(e) {
+      container.innerHTML = '<div class="chat-empty" style="padding:20px 0">불러오기 실패</div>';
+    }
+  }
+
+  async function searchFriend() {
+    const input  = document.getElementById('friend-search-input');
+    const name   = input.value.trim();
+    const result = document.getElementById('friend-search-result');
+    if (!name) return;
+
+    try {
+      const res  = await fetch(`/api/user/search/?q=${encodeURIComponent(name)}`);
+      const data = await res.json();
+
+      if (!data.success) {
+        result.innerHTML = `<div style="font-size:12px;color:#ef4444;margin-top:6px">${data.message}</div>`;
+        return;
+      }
+
+      // 상태에 따라 버튼 다르게
+      let actionBtn = '';
+      if (data.status === 'accepted') {
+        actionBtn = `<span style="font-size:11px;color:var(--muted)">이미 친구예요</span>`;
+      } else if (data.status === 'pending') {
+        actionBtn = `<span style="font-size:11px;color:var(--muted)">요청 전송됨</span>`;
+      } else {
+        actionBtn = `<button class="btn-submit" style="padding:6px 14px;font-size:12px"
+                       onclick="sendFriendRequest('${data.username}')">친구 요청</button>`;
+      }
+
+      result.innerHTML = `
+        <div class="friend-item" style="margin-top:8px">
+          <div class="friend-avatar">${data.username.slice(0,1).toUpperCase()}</div>
+          <div class="friend-name">${adminTag(data.username)}</div>
+          ${actionBtn}
+        </div>`;
+    } catch(e) {
+      result.innerHTML = `<div style="font-size:12px;color:#ef4444;margin-top:6px">네트워크 오류</div>`;
+    }
+  }
+
+  async function sendFriendRequest(toUsername) {
+    try {
+      const res  = await fetch('/api/friend/request/', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body   : JSON.stringify({ to_username: toUsername }),
+      });
+      const data = await res.json();
+      alert(data.message);
+      if (data.success) {
+        document.getElementById('friend-search-input').value = '';
+        document.getElementById('friend-search-result').innerHTML = '';
+      }
+    } catch(e) {
+      alert('네트워크 오류가 발생했습니다.');
+    }
+  }
+
+  async function deleteFriend(friendshipId) {
+    if (!confirm('친구 목록에서 삭제할까요?')) return;
+    try {
+      const res  = await fetch(`/api/friend/delete/${friendshipId}/`, {
+        method : 'DELETE',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      });
+      const data = await res.json();
+      if (data.success) await renderFriendList();
+      else alert(data.message || '삭제 실패');
+    } catch(e) {
+      alert('네트워크 오류가 발생했습니다.');
+    }
+  }
+
+  // nonfiction modal -> cycle
+  async function fetchNotifCount() {
+    try {
+      const [friendRes, notifRes] = await Promise.all([
+        fetch('/api/friend/requests/received/'),
+        fetch('/api/notifications/'),
+      ]);
+      const friendData = await friendRes.json();
+      const notifData  = await notifRes.json();
+      const friendCount = friendData.success ? friendData.requests.length : 0;
+      const notifCount  = notifData.success  ? notifData.unread : 0;
+      const total = friendCount + notifCount;
+      const badge = document.getElementById('notif-badge');
+      if (total > 0) {
+        badge.textContent   = total;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    } catch(e) {}
+  }
+
+  async function openNotifModal() {
+    await renderNotifList();
+    document.getElementById('notif-modal').classList.add('open');
+    setTimeout(fetchNotifCount, 500);
+  }
+
+  function closeNotifModal() {
+    document.getElementById('notif-modal').classList.remove('open');
+  }
+
+  function handleNotifOverlayClick(e) {
+    if (e.target === document.getElementById('notif-modal')) closeNotifModal();
+  }
+
+  async function renderNotifList() {
+    const container = document.getElementById('notif-list');
+    container.innerHTML = '<div class="chat-empty" style="padding:16px 0">불러오는 중...</div>';
+    try {
+      const [friendRes, notifRes] = await Promise.all([
+        fetch('/api/friend/requests/received/'),
+        fetch('/api/notifications/'),
+      ]);
+      const friendData = await friendRes.json();
+      const notifData  = await notifRes.json();
+      const items = [];
+
+      // friend request
+      if (friendData.success && friendData.requests.length > 0) {
+        friendData.requests.forEach(r => {
+          items.push(`
+            <div class="notif-item" style="border-color:rgba(201,168,76,0.35)">
+              <div class="friend-avatar">👥</div>
+              <div class="notif-item-info">
+                <div class="notif-item-title">${r.from_username}님의 친구 요청</div>
+                <div class="notif-item-sub">친구 요청을 보냈어요</div>
+              </div>
+              <div class="notif-item-btns">
+                <button class="btn-notif-accept" onclick="respondFriend(${r.id}, 'accept')">수락</button>
+                <button class="btn-notif-reject" onclick="respondFriend(${r.id}, 'reject')">거절</button>
+              </div>
+            </div>`);
+        });
+      }
+
+      //join requset
+      if (notifData.success && notifData.notifications.length > 0) {
+        notifData.notifications.forEach(n => {
+          const icon = n.type === 'join_request' ? '🙋'
+                     : n.type === 'join_accept'  ? '✅'
+                     : n.type === 'join_reject'  ? '❌' : '🔔';
+          const unread = n.is_read ? '' : 'border-color:rgba(201,168,76,0.35);';
+          let btns = '';
+          if (n.type === 'join_request' && n.request_status === 'pending') {
+            btns = `<div class="notif-item-btns">
+              <button class="btn-notif-accept" onclick="respondJoin(${n.request_id},'accept')">수락</button>
+              <button class="btn-notif-reject" onclick="respondJoin(${n.request_id},'reject')">거절</button>
+            </div>`;
+          }
+          items.push(`
+            <div class="notif-item" style="${unread}">
+              <div class="friend-avatar" style="font-size:18px">${icon}</div>
+              <div class="notif-item-info">
+                <div class="notif-item-title" style="font-size:12px;font-weight:500">${n.message}</div>
+                <div class="notif-item-sub">${n.created_at}</div>
+              </div>
+              ${btns}
+            </div>`);
+        });
+      }
+
+      if (items.length === 0) {
+        container.innerHTML = '<div class="chat-empty" style="padding:20px 0">새로운 알림이 없어요 😊</div>';
+        document.getElementById('btn-clear-notif').style.display = 'none';
+        return;
+      }
+      container.innerHTML = items.join('');
+      document.getElementById('btn-clear-notif').style.display = 'inline-flex';
+
+      // read 
+      fetch('/api/notifications/read/', {
+        method : 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      });
+    } catch(e) {
+      container.innerHTML = '<div class="chat-empty" style="padding:20px 0">불러오기 실패</div>';
+    }
+  }
+
+  async function clearAllNotifs() {
+    if (!confirm('모든 알림을 삭제하시겠습니까?')) return;
+    try {
+      await fetch('/api/notifications/clear/', {
+        method : 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      });
+      document.getElementById('notif-list').innerHTML =
+        '<div class="chat-empty" style="padding:20px 0">새로운 알림이 없어요 😊</div>';
+      document.getElementById('btn-clear-notif').style.display = 'none';
+      document.getElementById('notif-badge').style.display = 'none';
+    } catch(e) {
+      alert('삭제 중 오류가 발생했습니다.');
+    }
+  }
+
+  async function respondFriend(requestId, action) {
+    try {
+      const res  = await fetch('/api/friend/respond/', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body   : JSON.stringify({ request_id: requestId, action }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await renderNotifList();
+        await fetchNotifCount();
+        if (action === 'accept') await renderFriendList();
+      } else {
+        alert(data.message || '처리 실패');
+      }
+    } catch(e) {
+      alert('네트워크 오류가 발생했습니다.');
+    }
+  }
+
+  async function respondJoin(requestId, action) {
+    try {
+      const res  = await fetch('/api/join/respond/', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body   : JSON.stringify({ request_id: requestId, action }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await renderNotifList();
+        await fetchNotifCount();
+        await loadPosts();
+      } else {
+        alert(data.message || '처리 실패');
+      }
+    } catch(e) {
+      alert('네트워크 오류가 발생했습니다.');
+    }
+  }
+
+  //  page change
+  function navigateTo(url) {
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = url; }, 400);
+  }
+  // report
+  let reportTargetUsername = null;
+
+  function openReportModal() {
+    document.getElementById('report-search-input').value = '';
+    document.getElementById('report-search-result').innerHTML = '';
+    document.getElementById('report-search-modal').classList.add('open');
+    setTimeout(() => document.getElementById('report-search-input').focus(), 100);
+  }
+
+  function closeReportSearchModal() {
+    document.getElementById('report-search-modal').classList.remove('open');
+  }
+
+  function handleReportSearchOverlayClick(e) {
+    if (e.target === document.getElementById('report-search-modal')) closeReportSearchModal();
+  }
+
+  async function searchReportUser() {
+    const input  = document.getElementById('report-search-input');
+    const name   = input.value.trim();
+    const result = document.getElementById('report-search-result');
+    if (!name) return;
+
+    const myName = document.getElementById('profile-name').textContent;
+    if (name === myName) {
+      result.innerHTML = `<div style="font-size:12px;color:#ef4444;margin-top:6px">자기 자신은 신고할 수 없어요.</div>`;
+      return;
+    }
+
+    result.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-top:6px">검색 중...</div>`;
+    try {
+      const res  = await fetch(`/api/user/search/?q=${encodeURIComponent(name)}`);
+      const data = await res.json();
+      if (!data.success) {
+        result.innerHTML = `<div style="font-size:12px;color:#ef4444;margin-top:6px">${data.message}</div>`;
+        return;
+      }
+      result.innerHTML = `
+        <div class="friend-item" style="margin-top:8px;cursor:default">
+          <div class="friend-avatar">${data.username.slice(0,1).toUpperCase()}</div>
+          <div class="friend-name">${adminTag(data.username)}</div>
+          <button class="btn-submit" style="padding:6px 14px;font-size:12px;background:#ef4444;border-color:#ef4444"
+                  onclick="openReportReasonModal('${data.username}')">신고하기</button>
+        </div>`;
+    } catch(e) {
+      result.innerHTML = `<div style="font-size:12px;color:#ef4444;margin-top:6px">네트워크 오류</div>`;
+    }
+  }
+
+  function openReportReasonModal(username) {
+    reportTargetUsername = username;
+    document.getElementById('report-reason-title').textContent = `${username} 신고하기`;
+    document.getElementById('report-category').value = '';
+    document.getElementById('report-detail').value   = '';
+    document.getElementById('report-reason-modal').classList.add('open');
+    setTimeout(() => document.getElementById('report-detail').focus(), 100);
+  }
+
+  function closeReportReasonModal() {
+    document.getElementById('report-reason-modal').classList.remove('open');
+  }
+
+  function handleReportReasonOverlayClick(e) {
+    if (e.target === document.getElementById('report-reason-modal')) closeReportReasonModal();
+  }
+
+  async function submitReport() {
+    const category = document.getElementById('report-category').value.trim();
+    const detail   = document.getElementById('report-detail').value.trim();
+
+    if (!category) {
+      alert('신고 카테고리를 선택해주세요.');
+      return;
+    }
+    if (detail.length < 10) {
+      alert('상세 사유를 최소 10자 이상 입력해주세요.');
+      return;
+    }
+
+    try {
+      const res  = await fetch('/api/report/', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body   : JSON.stringify({
+          reported_username: reportTargetUsername,
+          category         : category,
+          detail           : detail,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        closeReportReasonModal();
+        closeReportSearchModal();
+        alert('신고가 접수되었습니다. 검토 후 조치하겠습니다.');
+      } else {
+        alert(data.message || '신고 제출에 실패했습니다.');
+      }
+    } catch(e) {
+      alert('네트워크 오류가 발생했습니다.');
+    }
+  }
+
+  async function handleLogout() {
+    await fetch('/logout/', {
+      method : 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    });
+    navigateTo('/');
+  }
+
+  // del tag
+  function stripHtml(str) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = str || '';
+    return tmp.textContent || tmp.innerText || '';
+  }
+
+  // admin name service
+  function adminTag(username) {
+    if (username === 'admin') {
+      return `<span style="color:#ef4444;font-weight:700">👑 ${username}</span>`;
+    }
+    return username;
+  }
+
+  function getCookie(name) {
+    let value = null;
+    document.cookie.split(';').forEach(c => {
+      const [k, v] = c.trim().split('=');
+      if (k === name) value = decodeURIComponent(v);
+    });
+    return value;
+  }
+   
+  //초기 실행
+  init();
+  </script>
+</body>
+</html>

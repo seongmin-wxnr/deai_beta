@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="page-title">소환사 정보 — Deai × LoL</title>
+  <link rel="stylesheet" href="{% static 'css/riot_lol.css' %}">
+  <!-- riot_userpagemodalscroll -->
+  <link rel="stylesheet" href="{% static 'css/riot_userpagemodalscroll.css' %}">
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="/Deai_main/" style="flex-shrink:0;">
+    <span class="nav-logo-text">DEAI</span>
+    <span class="nav-logo-sep">×</span>
+    <span class="nav-logo-sub">League of Legends</span>
+  </a>
+
+  <!-- 네브바 인라인 검색 -->
+  <div style="display:flex;align-items:center;flex:1;max-width:440px;margin:0 28px;">
+    <div id="nav-search-box"
+         style="display:flex;align-items:center;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px 0 0 6px;flex:1;overflow:hidden;transition:border-color 0.2s;"
+         onfocusin="this.style.borderColor='var(--gold)'"
+         onfocusout="this.style.borderColor='var(--border)'">
+      <input id="nav-name-input" type="text" placeholder="소환사 이름" autocomplete="off" spellcheck="false"
+             style="background:none;border:none;outline:none;padding:8px 10px;font-family:var(--font-ui);font-size:13px;color:var(--text-bright);flex:1;min-width:0;"
+             onkeydown="if(event.key==='Enter')navSearch()"/>
+      <span style="color:var(--text-muted);font-size:14px;padding:0 2px;flex-shrink:0;">#</span>
+      <input id="nav-tag-input" type="text" placeholder="KR1" maxlength="8" autocomplete="off" spellcheck="false"
+             style="background:none;border:none;outline:none;padding:8px 8px;font-family:var(--font-ui);font-size:13px;color:var(--text-bright);width:68px;flex-shrink:0;"
+             onkeydown="if(event.key==='Enter')navSearch()"/>
+    </div>
+    <select id="nav-region-select"
+            style="background:#0d1117;border:1px solid var(--border);border-left:none;border-radius:0;outline:none;padding:8px 4px;font-family:var(--font-ui);font-size:12px;color:var(--text-sub);cursor:pointer;height:38px;flex-shrink:0;">
+      <option value="kr">KR</option>
+      <option value="na1">NA</option>
+      <option value="euw1">EUW</option>
+      <option value="eun1">EUNE</option>
+      <option value="jp1">JP</option>
+    </select>
+    <button onclick="navSearch()"
+            style="background:var(--gold);border:none;border-radius:0 6px 6px 0;width:42px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.18s;"
+            onmouseover="this.style.background='var(--gold-bright)'"
+            onmouseout="this.style.background='var(--gold)'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" style="width:15px;height:15px;">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+    </button>
+  </div>
+
+  <button class="nav-back" onclick="navigateTo('/RiotSearch/')" style="flex-shrink:0;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+    </svg>
+    검색으로
+  </button>
+</nav>
+
+<div class="page-wrapper">
+  <div class="userpage-wrap">
+
+    <!-- 왼쪽 사이드바 -->
+    <aside class="sidebar">
+      <div class="card profile-card anim-1" id="profile-card">
+        <div class="state-box"><div class="spinner"></div><span class="msg">프로필 로딩 중...</span></div>
+      </div>
+      <div class="card tier-card anim-2" id="tier-card-solo">
+        <div class="tier-card-header">개인/2인 랭크</div>
+        <div class="state-box" style="padding:24px;"><div class="spinner"></div></div>
+      </div>
+      <div class="card tier-card anim-3" id="tier-card-flex">
+        <div class="tier-card-header">자유 랭크</div>
+        <div class="state-box" style="padding:24px;"><div class="spinner"></div></div>
+      </div>
+      <div class="card mastery-card anim-4" id="mastery-card">
+        <div class="tier-card-header">챔피언 숙련도 TOP 5</div>
+        <div class="state-box" style="padding:24px;"><div class="spinner"></div></div>
+      </div>
+    </aside>
+
+    <!-- 오른쪽 메인 -->
+    <main class="main-content">
+      <div class="card anim-2" id="stats-bar-wrap" style="display:none;">
+        <div class="stats-bar">
+          <div class="stats-bar-item"><div class="stat-value" id="stat-games">—</div><div class="stat-label">최근 게임</div></div>
+          <div class="stats-bar-item"><div class="stat-value" id="stat-wr" style="color:var(--tier-emerald)">—</div><div class="stat-label">승률</div></div>
+          <div class="stats-bar-item"><div class="stat-value" id="stat-kda">—</div><div class="stat-label">평균 KDA</div></div>
+          <div class="stats-bar-item"><div class="stat-value" id="stat-cs">—</div><div class="stat-label">평균 CS/분</div></div>
+        </div>
+      </div>
+
+      <div class="card anim-3">
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchTab('matches',this)">전적</button>
+          <button class="tab-btn" onclick="switchTab('champions',this)">챔피언 통계</button>
+        </div>
+        <div class="tab-content active" id="tab-matches" style="padding:16px;">
+          <div class="match-list" id="match-list">
+            <div class="state-box"><div class="spinner"></div><span class="msg">전적 불러오는 중...</span></div>
+          </div>
+          <div style="text-align:center;margin-top:16px;display:none;" id="load-more-wrap">
+            <button class="btn btn-outline" onclick="loadMoreMatches()" id="load-more-btn">더 보기</button>
+          </div>
+        </div>
+        <div class="tab-content" id="tab-champions" style="padding:16px;">
+          <div id="champ-stats-wrap">
+            <div class="state-box"><div class="spinner"></div><span class="msg">집계 중...</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DD_VERSION = '{{ DD_VERSION }}';
+const DD_IMG     = `https://ddragon.leagueoflegends.com/cdn/${DD_VERSION}/img`;
+
+const QUEUE_MAP = {
+  420:'솔로랭크', 440:'자유랭크', 450:'ARAM',
+  400:'일반(드래프트)', 430:'일반', 900:'URF',
+  1700:'아레나', 1900:'URF',
+};
+
+// 전역 상태
+let S = {
+  puuid:'', summonerId:'', region:'kr',
+  gameName:'', tagLine:'', iconId:1, level:1,
+  matchData:[], matchStart:0,
+  champData:{},
+  champMap:null, spellMap:null,
+};
+
+function parseParams() {
+  const p = new URLSearchParams(location.search);
+  S.gameName = p.get('name')|| '';
+  S.tagLine= p.get('tag') || '';
+  S.region = p.get('region')|| 'kr';
+  S.puuid = p.get('puuid') || '';
+  S.summonerId = p.get('summonerId') || '';
+  S.iconId = parseInt(p.get('iconId'))  || 1;
+  S.level = parseInt(p.get('level'))   || 1;
+  document.title = `${S.gameName} #${S.tagLine} — Deai × LoL`;
+  const _rsel = document.getElementById('nav-region-select');
+  if (_rsel) _rsel.value = S.region;
+}
+
+async function riotAPI(path) {
+  const res  = await fetch(path);
+  const data = await res.json();
+  return data;
+}
+
+async function getChampMap() {
+  if (S.champMap) return S.champMap;
+  // /api/riot/champions/ → Django가 Data Dragon 호출 후 {champions: {id: {name, id}}} 반환
+  const data = await riotAPI('/api/riot/champions/?lang=ko_KR');
+  S.champMap = data.success ? data.champions : {};
+  return S.champMap;
+}
+
+async function getSpellMap() {
+  if (S.spellMap) return S.spellMap;
+  // Data Dragon 소환사 주문은 Django 프록시 미구현 → 직접 호출 
+  const res  = await fetch(`/api/riot/dd-spell/?lang=ko_KR`);
+  const data = await res.json();
+  S.spellMap = {};
+  const spellData = data.data || data;
+  Object.values(spellData).forEach(s => { S.spellMap[parseInt(s.key)] = s.id; });
+  return S.spellMap;
+}
+function renderProfile() {
+  const iconUrl = `${DD_IMG}/profileicon/${S.iconId}.png`;
+  document.getElementById('profile-card').innerHTML = `
+    <div class="profile-backdrop"></div>
+    <div class="profile-icon-wrap" style="text-align:center;">
+      <div class="profile-icon" style="margin:0 auto;">
+        <img src="${iconUrl}" onerror="this.src='${DD_IMG}/profileicon/1.png'" alt="아이콘"/>
+      </div>
+      <div class="profile-level-badge">Lv. ${S.level}</div>
+    </div>
+    <div class="profile-name-area" style="text-align:center;margin-top:18px;">
+      <div class="profile-gamename">${esc(S.gameName)}</div>
+      <div class="profile-tagline">#${esc(S.tagLine)}</div>
+      <div style="margin-top:8px;">
+        <span class="badge" style="color:var(--blue);border-color:var(--border-blue);background:rgba(11,196,227,0.08);">
+          ${S.region.toUpperCase()}
+        </span>
+      </div>
+    </div>
+    <div class="divider-gold" style="margin-top:20px;"><span>INFO</span></div>
+    <div style="display:flex;gap:8px;justify-content:center;">
+      s
+    </div>
+  `;
+}
+
+async function loadLeague() {
+  const data = await riotAPI(`/api/riot/rank/?region=${S.region}&summonerId=${encodeURIComponent(S.summonerId)}&puuid=${encodeURIComponent(S.puuid)}`);
+  if (!data.success) { renderTierCard('tier-card-solo','개인/2인 랭크',null); renderTierCard('tier-card-flex','자유 랭크',null); return; }
+  renderTierCard('tier-card-solo', '개인/2인 랭크', data.solo);
+  renderTierCard('tier-card-flex', '자유 랭크',     data.flex);
+}
+
+function tierEmblemUrl(t) {
+// emerald 접근 ㅏㅇㄴ됌
+  const map = {
+    IRON:'iron', BRONZE:'bronze', SILVER:'silver', GOLD:'gold',
+    PLATINUM:'platinum', EMERALD:'emerald_i', DIAMOND:'diamond',
+    MASTER:'master', GRANDMASTER:'grandmaster', CHALLENGER:'challenger'
+  };
+  const name = map[t];
+  if (!name) return '';
+  //return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/emblem-'+t+'.png`
+  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblems/emblem-${name}.png`;
+}
+function tierEmblemFallback(img) {
+  const raw  = img.src.split('emblem-').pop().replace('.png','').replace('_i','');
+  img.onerror = () => { img.onerror = null; img.style.opacity = '0'; };
+  img.src = `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-mini-crests/${raw}.png`;
+}
+
+function renderTierCard(id, label, d) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<div class="tier-card-header">${label}</div>`;
+  if (!d) {
+    el.innerHTML += `<div class="state-box" style="padding:20px;"><span class="icon">🎯</span><span class="msg">배치 미완료</span><span class="sub">이번 시즌 배치를 완료해주세요</span></div>`;
+    return;
+  }
+  const wr = Math.round(d.wins / (d.wins + d.losses) * 100);
+  el.innerHTML += `
+    <div class="tier-main">
+      <div class="tier-emblem">
+        <img src="${tierEmblemUrl(d.tier)}" alt="${d.tier}" onerror="tierEmblemFallback(this)"/>
+      </div>
+      <div class="tier-info">
+        <div class="tier-name tier-${d.tier}">${d.tier}</div>
+        <div class="tier-division">${d.rank}</div>
+        <div class="tier-lp">${d.leaguePoints.toLocaleString()} <span>LP</span></div>
+      </div>
+    </div>
+    <div class="tier-stats-row">
+      <div class="tier-stat"><div class="val">${d.wins+d.losses}</div><div class="lbl">게임</div></div>
+      <div class="tier-stat"><div class="val" style="color:${wr>=55?'var(--tier-emerald)':wr<=45?'#f87171':'var(--text-bright)'}">${wr}%</div><div class="lbl">승률</div></div>
+      <div class="tier-stat"><div class="val" style="color:var(--blue)">${d.wins}W</div><div class="lbl">승리</div></div>
+      <div class="tier-stat"><div class="val" style="color:#ef5350">${d.losses}L</div><div class="lbl">패배</div></div>
+    </div>
+    ${d.hotStreak ? '<div style="text-align:center;font-family:var(--font-ui);font-size:11px;color:var(--tier-gold);margin-top:10px;">🔥 Hot Streak</div>' : ''}
+    ${d.miniSeries ? renderPromo(d.miniSeries) : ''}
+  `;
+}
+
+function renderPromo(ms) {
+  const dots = ms.progress.split('').map(c =>
+    `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid var(--gold);background:${c==='W'?'var(--gold)':c==='L'?'var(--red)':'transparent'};margin:0 2px;"></span>`
+  ).join('');
+  return `<div style="margin-top:12px;text-align:center;font-family:var(--font-ui);font-size:11px;color:var(--text-muted);">승급전 &nbsp;${dots}</div>`;
+}
+
+async function loadMastery() {
+  const [data, champMap] = await Promise.all([
+    riotAPI(`/api/riot/mastery/?region=${S.region}&puuid=${encodeURIComponent(S.puuid)}&count=5`),
+    getChampMap(),
+  ]);
+  const el = document.getElementById('mastery-card');
+  el.innerHTML = '<div class="tier-card-header">챔피언 숙련도 TOP 5</div>';
+
+  if (!data.success) {
+    el.innerHTML += '<div class="state-box"><span class="msg">불러올 수 없음</span></div>';
+    return;
+  }
+
+  const rankColors = ['#f4c874','#d4d4d4','#cd7f32','var(--text-muted)','var(--text-muted)'];
+  const rankClasses = ['top1','top2','top3','',''];
+
+  data.masteries.forEach((m, i) => {
+    const champ = champMap[m.championId] || {name:'???', id:'Aatrox'};
+    el.innerHTML += `
+      <div class="mastery-item">
+        <span class="mastery-rank ${rankClasses[i]}">${i+1}</span>
+        <div class="mastery-champ-icon">
+          <img src="${DD_IMG}/champion/${champ.id}.png" onerror="this.style.display='none'" alt="${esc(champ.name)}"/>
+        </div>
+        <div class="mastery-info">
+          <div class="mastery-champ-name">${esc(champ.name)}</div>
+          <div class="mastery-pts">${fmtNum(m.championPoints)} pts</div>
+        </div>
+        <div class="mastery-level">
+          <span class="mastery-lvl-badge" style="background:rgba(0,0,0,0.3);border:1px solid ${rankColors[i]};color:${rankColors[i]};">
+            Lv.${m.championLevel}
+          </span>
+        </div>
+      </div>`;
+  });
+}
+const PAGE_SIZE = 20;
+
+async function loadMatches(start=0) {
+  return riotAPI(`/api/riot/matches/?region=${S.region}&puuid=${encodeURIComponent(S.puuid)}&start=${start}&count=${PAGE_SIZE}`);
+}
+
+async function loadMatchDetail(matchId) {
+  return riotAPI(`/api/riot/match/${encodeURIComponent(matchId)}/?region=${S.region}`);
+}
+
+async function initMatches() {
+  const ml = document.getElementById('match-list');
+  const [idsData, champMap, spellMap] = await Promise.all([loadMatches(0), getChampMap(), getSpellMap()]);
+
+  if (!idsData.success || !idsData.matchIds?.length) {
+    ml.innerHTML = '<div class="state-box"><span class="icon">🎮</span><span class="msg">최근 게임 없음</span></div>';
+    return;
+  }
+
+  ml.innerHTML = '';
+  const details = await Promise.allSettled(idsData.matchIds.map(id => loadMatchDetail(id)));
+  details.forEach(r => {
+    if (r.status === 'fulfilled' && r.value.success) {
+      const card = buildMatchCard(r.value.match, champMap, spellMap);
+      if (card) { ml.appendChild(card); S.matchData.push(r.value.match); accumChamp(r.value.match, champMap); }
+    }
+  });
+
+  S.matchStart = PAGE_SIZE;
+  if (idsData.matchIds.length === PAGE_SIZE) document.getElementById('load-more-wrap').style.display = 'block';
+  updateStatsBar();
+  renderChampStats();
+
+}
+
+async function loadMoreMatches() {
+  const btn = document.getElementById('load-more-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;"></div>';
+  const [idsData, champMap, spellMap] = await Promise.all([loadMatches(S.matchStart), getChampMap(), getSpellMap()]);
+  if (idsData.success) {
+    const ml = document.getElementById('match-list');
+    const details = await Promise.allSettled(idsData.matchIds.map(id => loadMatchDetail(id)));
+    details.forEach(r => {
+      if (r.status === 'fulfilled' && r.value.success) {
+        const card = buildMatchCard(r.value.match, champMap, spellMap);
+        if (card) { ml.appendChild(card); S.matchData.push(r.value.match); accumChamp(r.value.match, champMap); }
+      }
+    });
+    S.matchStart += PAGE_SIZE;
+    updateStatsBar(); renderChampStats();
+    if (idsData.matchIds.length < PAGE_SIZE) document.getElementById('load-more-wrap').style.display = 'none';
+  }
+  btn.disabled = false; btn.innerHTML = '더 보기';
+}
+
+function buildMatchCard(match, champMap, spellMap) {
+  const info = match?.info;
+  if (!info) return null;
+  const me = info.participants?.find(p => p.puuid === S.puuid);
+  if (!me) return null;
+
+  const isWin = me.win;
+  const champ = champMap[me.championId] || {name:'???', id:'Aatrox'};
+  const spell1 = spellMap[me.summoner1Id]||'';
+  const spell2 = spellMap[me.summoner2Id]||'';
+  const cs     = me.totalMinionsKilled + me.neutralMinionsKilled;
+  const csMin  = (cs / (info.gameDuration/60)).toFixed(1);
+  const kda    = me.deaths===0 ? 'Perfect' : ((me.kills+me.assists)/me.deaths).toFixed(2);
+  const kdaClass = me.deaths===0?'kda-perfect':parseFloat(kda)>=4?'kda-great':parseFloat(kda)>=2.5?'kda-good':'';
+  const queue  = QUEUE_MAP[info.queueId]||'기타';
+  const dur    = `${Math.floor(info.gameDuration/60)}:${String(info.gameDuration%60).padStart(2,'0')}`;
+  const timeAgo = timeSince(info.gameEndTimestamp/1000);
+
+  const items  = [me.item0,me.item1,me.item2,me.item3,me.item4,me.item5,me.item6];
+  const itemsTopHtml    = items.slice(0,4).map(id => id?`<div class="match-item"><img src="${DD_IMG}/item/${id}.png" loading="lazy"/></div>`:`<div class="match-item empty"></div>`).join('');
+  const itemsBottomHtml = items.slice(4).map(id => id?`<div class="match-item"><img src="${DD_IMG}/item/${id}.png" loading="lazy"/></div>`:`<div class="match-item empty"></div>`).join('');
+
+  const div = document.createElement('div');
+  const matchIdx = S.matchData.length; // 저장 전 인덱스 (나중에 클릭 시 참조용으로 match 직접 전달)
+  div.className = `match-card ${isWin?'win':'lose'}`;
+  div.style.cursor = 'pointer';
+  div.addEventListener('click', () => openMatchModal(match, champMap));
+  div.innerHTML = `
+    <div class="match-result-col">
+      <span class="match-result-txt">${isWin?'WIN':'LOSE'}</span>
+      <span class="match-queue">${queue}</span>
+      <span class="match-duration">${dur}</span>
+      <span class="match-duration" style="color:#7a7670;font-size:10px;">${timeAgo}</span>
+    </div>
+    <div class="match-main-col">
+      <div class="match-champ-icon" style="position:relative;">
+        <img src="${DD_IMG}/champion/${champ.id}.png" loading="lazy" onerror="this.src='${DD_IMG}/champion/Aatrox.png'"/>
+        <div class="match-champ-level">${me.champLevel}</div>
+      </div>
+      <div class="match-spells">
+        <div class="match-spell">${spell1?`<img src="${DD_IMG}/spell/${spell1}.png" loading="lazy"/>`:'&nbsp;'}</div>
+        <div class="match-spell">${spell2?`<img src="${DD_IMG}/spell/${spell2}.png" loading="lazy"/>`:'&nbsp;'}</div>
+      </div>
+      <div class="match-kda-col">
+        <div class="match-kda">
+          <span>${me.kills}</span><span class="sep">/</span>
+          <span style="color:#ef5350">${me.deaths}</span><span class="sep">/</span>
+          <span>${me.assists}</span>
+        </div>
+        <div class="match-kda-ratio ${kdaClass}">${kda==='Perfect'?'⚡ Perfect KDA':`${kda} : 1 KDA`}</div>
+        <div style="font-family:var(--font-ui);font-size:11px;color:#a09b8c;margin-top:4px;">
+          ${esc(champ.name)} &nbsp;·&nbsp; <span style="color:${isWin?'#60a5fa':'#ef5350'}">${me.visionScore} 시야</span>
+        </div>
+      </div>
+    </div>
+    <div class="match-items-col">
+      <div class="match-items-row">${itemsTopHtml}</div>
+      <div class="match-items-row" style="margin-top:3px;">${itemsBottomHtml}</div>
+      <div class="match-cs-row" style="margin-top:6px;">CS ${cs} <span style="color:var(--text-muted)">(${csMin}/분)</span></div>
+      <div class="match-cs-row">${me.goldEarned.toLocaleString()} Gold</div>
+    </div>
+  `;
+  return div;
+}
+
+function openMatchModal(match, champMap) {
+  const info = match?.info;
+  if (!info) return;
+
+  const isWin    = info.participants?.find(p => p.puuid === S.puuid)?.win;
+  const queue    = QUEUE_MAP[info.queueId] || '기타';
+  const dur      = `${Math.floor(info.gameDuration/60)}:${String(info.gameDuration%60).padStart(2,'0')}`;
+  const dateStr  = new Date(info.gameEndTimestamp).toLocaleDateString('ko-KR', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+
+  // 헤더
+  const badge = document.getElementById('modal-result-badge');
+  badge.textContent = isWin ? 'WIN' : 'LOSE';
+  badge.style.cssText += isWin
+    ? ';background:rgba(96,165,250,0.15);color:#60a5fa;border:1px solid rgba(96,165,250,0.3);'
+    : ';background:rgba(239,83,80,0.15);color:#ef5350;border:1px solid rgba(239,83,80,0.3);';
+  document.getElementById('modal-queue').textContent    = queue;
+  document.getElementById('modal-duration').textContent = dur;
+  document.getElementById('modal-date').textContent     = dateStr;
+  
+  const team1 = info.participants.filter(p => p.teamId === 100);
+  const team2 = info.participants.filter(p => p.teamId === 200);
+  const team1Win = info.teams?.find(t => t.teamId === 100)?.win;
+  const team2Win = info.teams?.find(t => t.teamId === 200)?.win;
+
+  document.getElementById('modal-team1-label').innerHTML =
+    `<span style="color:${team1Win?'#60a5fa':'#ef5350'}">${team1Win?'✔ ':'✘ '}블루팀</span>`;
+  document.getElementById('modal-team2-label').innerHTML =
+    `<span style="color:${team2Win?'#60a5fa':'#ef5350'}">${team2Win?'✔ ':'✘ '}레드팀</span>`;
+
+  document.getElementById('modal-team1-body').innerHTML = team1.map(p => buildPlayerRow(p, champMap)).join('');
+  document.getElementById('modal-team2-body').innerHTML = team2.map(p => buildPlayerRow(p, champMap)).join('');
+
+  document.getElementById('match-modal-overlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+
+  loadModalRanks(info.participants);
+}
+
+async function loadModalRanks(participants) {
+  // 10명 랭크를 병렬로 조회
+  await Promise.allSettled(participants.map(async p => {
+    try {
+      const data = await riotAPI(`/api/riot/rank/?region=${S.region}&puuid=${encodeURIComponent(p.puuid)}`);
+      if (!data.success) return;
+      const entry = data.solo || data.flex; // 솔로 우선, 없으면 자유랭크
+      const el = document.getElementById(`modal-rank-${p.puuid}`);
+      if (!el) return;
+      if (entry) {
+        el.innerHTML = tierShortBadge(entry.tier, entry.rank) +
+          `<span style="font-family:var(--font-ui);font-size:10px;color:#aaa;margin-left:4px;font-weight:600;">Lv${p.summonerLevel}</span>`;
+      } else {
+        el.innerHTML = `<span style="font-family:var(--font-ui);font-size:10px;color:#888;">Unranked</span>` +
+          `<span style="font-family:var(--font-ui);font-size:10px;color:#aaa;margin-left:4px;font-weight:600;">Lv${p.summonerLevel}</span>`;
+      }
+    } catch(e) { /* 조용히 실패 */ }
+  }));
+}
+
+function tierShortBadge(tier, rank) {
+  const abbr = {IRON:'I',BRONZE:'B',SILVER:'S',GOLD:'G',PLATINUM:'P',EMERALD:'E',DIAMOND:'D',MASTER:'M',GRANDMASTER:'GM',CHALLENGER:'C'};
+  const color = {
+    IRON:'#9e9e9e', BRONZE:'#cd7f32', SILVER:'#b0bec5', GOLD:'#ffc107',
+    PLATINUM:'#26c6da', EMERALD:'#66bb6a', DIAMOND:'#7986cb',
+    MASTER:'#ab47bc', GRANDMASTER:'#ef5350', CHALLENGER:'#ffd700'
+  };
+  const isDivisionless = ['MASTER','GRANDMASTER','CHALLENGER'].includes(tier);
+  const short = (abbr[tier]||tier) + (isDivisionless ? '' : rank);
+  const c = color[tier] || '#aaa';
+  return `<span class="modal-tier-badge" style="background:${c}28;color:${c};border:1px solid ${c}66;font-size:11px;padding:2px 6px;">${short}</span>`;
+}
+
+function closeMatchModal() {
+  document.getElementById('match-modal-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function buildPlayerRow(p, champMap) {
+  const champ   = champMap[p.championId] || {name:'???', id:'Aatrox'};
+  const isMe    = p.puuid === S.puuid;
+  const kda     = p.deaths === 0 ? '∞' : ((p.kills + p.assists) / p.deaths).toFixed(2);
+  const kdaColor = p.deaths===0 ? 'var(--tier-chall)' : parseFloat(kda)>=4 ? 'var(--tier-emerald)' : parseFloat(kda)>=2.5 ? '#facc15' : 'var(--text-sub)';
+  const cs      = p.totalMinionsKilled + p.neutralMinionsKilled;
+  const items   = [p.item0,p.item1,p.item2,p.item3,p.item4,p.item5,p.item6];
+  const dmg     = (p.totalDamageDealtToChampions/1000).toFixed(1) + 'k';
+
+  const itemsHtml = items.map(id =>
+    id ? `<img class="modal-item-icon" src="${DD_IMG}/item/${id}.png" loading="lazy" onerror="this.style.display='none'"/>`
+       : `<span class="modal-item-slot"></span>`
+  ).join('');
+
+  const nameStyle = isMe
+    ? 'font-weight:700;color:var(--gold);'
+    : 'color:var(--text-bright);';
+
+  return `<tr class="modal-player-row${isMe?' me':''}">
+    <td style="padding:6px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <img class="modal-champ-icon" src="${DD_IMG}/champion/${champ.id}.png" onerror="this.src='${DD_IMG}/champion/Aatrox.png'"/>
+        <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+          <div style="display:flex;align-items:center;gap:4px;">
+            ${isMe
+              ? `<span style="font-family:var(--font-ui);font-size:13px;${nameStyle};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">${esc(p.riotIdGameName||p.summonerName||'—')}</span>
+                 <span style="font-size:9px;font-family:var(--font-ui);color:var(--gold);flex-shrink:0;">▶ 나</span>`
+              : `<button onclick="goToPlayerPage('${encodeURIComponent(p.riotIdGameName||p.summonerName||'')}','${encodeURIComponent(p.riotIdTagline||'')}','${p.puuid}')"
+                  style="font-family:var(--font-ui);font-size:13px;color:var(--text-bright);background:none;border:none;padding:0;cursor:pointer;
+                         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;text-align:left;
+                         transition:color 0.15s;"
+                  onmouseover="this.style.color='var(--gold)';this.style.textDecoration='underline'"
+                  onmouseout="this.style.color='var(--text-bright)';this.style.textDecoration='none'"
+                >${esc(p.riotIdGameName||p.summonerName||'—')}</button>`
+            }
+          </div>
+          <div id="modal-rank-${p.puuid}" style="display:flex;align-items:center;gap:3px;height:16px;">
+            <span style="font-family:var(--font-ui);font-size:10px;color:#666;">···</span>
+          </div>
+        </div>
+      </div>
+    </td>
+    <td style="text-align:center;font-family:var(--font-ui);font-size:13px;font-weight:600;padding:6px;color:#d0c8be;">
+      ${p.kills} / <span style="color:#f87171">${p.deaths}</span> / ${p.assists}
+    </td>
+    <td style="text-align:center;font-family:var(--font-ui);font-size:14px;font-weight:700;color:${kdaColor};padding:6px;">${kda}</td>
+    <td style="text-align:center;font-family:var(--font-ui);font-size:13px;color:#b8b2a8;padding:6px;">${cs}</td>
+    <td style="text-align:center;font-family:var(--font-ui);font-size:13px;color:#b8b2a8;padding:6px;">${dmg}</td>
+    <td style="text-align:center;font-family:var(--font-ui);font-size:13px;font-weight:600;color:#c89b3c;padding:6px;">${p.goldEarned.toLocaleString()}</td>
+    <td style="text-align:right;padding:6px;white-space:nowrap;">${itemsHtml}</td>
+  </tr>`;
+}
+
+
+async function navSearch() {
+  const name   = document.getElementById('nav-name-input').value.trim();
+  const tag    = document.getElementById('nav-tag-input').value.trim();
+  const region = document.getElementById('nav-region-select').value;
+  if (!name) { document.getElementById('nav-name-input').focus(); return; }
+
+  const searchTag = tag || region.replace(/[0-9]/g,'').toUpperCase();
+
+  // 로딩 오버레이
+  let overlay = document.getElementById('goto-loading');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'goto-loading';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div class="spinner" style="width:40px;height:40px;border-width:3px;"></div>
+    <div style="font-family:var(--font-ui);font-size:13px;color:var(--text-sub);">
+      <span style="color:var(--gold);font-weight:700;">${esc(name)}</span> 전적 조회 중...
+    </div>`;
+
+  try {
+    const data = await riotAPI(
+      `/api/riot/account/?name=${encodeURIComponent(name)}&tag=${encodeURIComponent(searchTag)}&region=${region}`
+    );
+    if (!data?.success) {
+      overlay.remove();
+      const box = document.getElementById('nav-search-box');
+      box.style.borderColor = '#ef5350';
+      setTimeout(() => { box.style.borderColor = 'var(--border)'; }, 2000);
+      return;
+    }
+    const params = new URLSearchParams({
+      name      : data.gameName,
+      tag       : data.tagLine,
+      region,
+      puuid     : data.puuid,
+      summonerId: data.summonerId || '',
+      iconId    : data.profileIconId || 1,
+      level     : data.summonerLevel || 1,
+    });
+    window.location.href = `/RiotUserPage/?${params.toString()}`;
+  } catch(e) {
+    const o = document.getElementById('goto-loading');
+    if (o) o.remove();
+  }
+}
+
+async function goToPlayerPage(encodedName, encodedTag, puuid) {
+  const name = decodeURIComponent(encodedName);
+  const tag  = decodeURIComponent(encodedTag);
+
+  // 로딩 표시
+  const overlay = document.createElement('div');
+  overlay.id = 'goto-loading';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;';
+  overlay.innerHTML = `
+    <div class="spinner" style="width:40px;height:40px;border-width:3px;"></div>
+    <div style="font-family:var(--font-ui);font-size:13px;color:var(--text-sub);">
+      <span style="color:var(--gold);font-weight:700;">${esc(name)}</span> 전적 조회 중...
+    </div>`;
+  document.body.appendChild(overlay);
+
+  try {
+    let accountData;
+    if (name && tag) {
+      accountData = await riotAPI(
+        `/api/riot/account/?name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}&region=${S.region}`
+      );
+    }
+
+    if (!accountData?.success) {
+      document.body.removeChild(overlay);
+      alert('해당 소환사 정보를 불러오지 못했습니다.');
+      return;
+    }
+    const params = new URLSearchParams({
+      name      : accountData.gameName,
+      tag       : accountData.tagLine,
+      region    : S.region,
+      puuid     : accountData.puuid,
+      summonerId: accountData.summonerId || '',
+      iconId    : accountData.profileIconId || 1,
+      level     : accountData.summonerLevel || 1,
+    });
+    window.location.href = `/RiotUserPage/?${params.toString()}`;
+
+  } catch(e) {
+    document.body.removeChild(overlay);
+    alert('오류가 발생했습니다: ' + e.message);
+  }
+}
+
+function accumChamp(match, champMap) {
+  const me = match?.info?.participants?.find(p => p.puuid === S.puuid);
+  if (!me) return;
+  const champ = champMap[me.championId] || {name:'???', id:'Aatrox'};
+  const name  = champ.name;
+  if (!S.champData[name]) S.champData[name] = {wins:0,games:0,kills:0,deaths:0,assists:0,cs:0, id:champ.id};
+  const d = S.champData[name];
+  d.games++; if(me.win) d.wins++;
+  d.kills+=me.kills; d.deaths+=me.deaths; d.assists+=me.assists;
+  d.cs += me.totalMinionsKilled+me.neutralMinionsKilled;
+}
+
+function updateStatsBar() {
+  const all = S.matchData, total = all.length;
+  if (!total) return;
+  const wins = all.filter(m=>m.info?.participants?.find(p=>p.puuid===S.puuid)?.win).length;
+  const wr   = Math.round(wins/total*100);
+  let sumK=0,sumD=0,sumA=0,sumCs=0;
+  all.forEach(m => {
+    const me = m.info?.participants?.find(p=>p.puuid===S.puuid);
+    if(!me) return;
+    sumK+=me.kills; sumD+=me.deaths; sumA+=me.assists;
+    sumCs+=(me.totalMinionsKilled+me.neutralMinionsKilled)/(m.info.gameDuration/60);
+  });
+  document.getElementById('stat-games').textContent = `${wins}W ${total-wins}L`;
+  document.getElementById('stat-wr').textContent    = `${wr}%`;
+  document.getElementById('stat-wr').style.color    = wr>=55?'var(--tier-emerald)':wr<=45?'#f87171':'var(--text-bright)';
+  document.getElementById('stat-kda').textContent   = `${(sumK/total).toFixed(1)} / ${(sumD/total).toFixed(1)} / ${(sumA/total).toFixed(1)}`;
+  document.getElementById('stat-cs').textContent    = (sumCs/total).toFixed(1);
+  document.getElementById('stats-bar-wrap').style.display = 'block';
+}
+
+function renderChampStats() {
+  const wrap   = document.getElementById('champ-stats-wrap');
+  const sorted = Object.entries(S.champData).sort((a,b)=>b[1].games-a[1].games);
+  if (!sorted.length) { wrap.innerHTML='<div class="state-box"><span class="msg">데이터 없음</span></div>'; return; }
+
+  const rows = sorted.map(([name,d])=>{
+    const wr  = Math.round(d.wins/d.games*100);
+    const kda = d.deaths===0?'Perfect':((d.kills+d.assists)/d.deaths).toFixed(2);
+    const wrClass = wr>=60?'high':wr<=40?'low':'';
+    return `<tr>
+      <td>
+        <span class="champ-icon-sm">
+          <img src="${DD_IMG}/champion/${d.id||name.replace(/ /g,'')}.png" style="width:100%;height:100%;object-fit:cover;border-radius:3px;" onerror="this.style.display='none'"/>
+        </span>${esc(name)}
+      </td>
+      <td style="font-family:var(--font-ui);">${d.games}</td>
+      <td>
+        <div class="wr-bar-wrap">
+          <div class="wr-bar"><div class="wr-bar-fill ${wrClass}" style="width:${wr}%"></div></div>
+          <span style="font-family:var(--font-ui);font-size:12px;min-width:36px;text-align:right;color:${wr>=60?'var(--tier-emerald)':wr<=40?'#f87171':'var(--text-bright)'}">${wr}%</span>
+        </div>
+      </td>
+      <td style="font-family:var(--font-ui);color:${kda==='Perfect'?'var(--tier-chall)':'var(--text-bright)'}">
+        ${kda==='Perfect'?'⚡ Perfect':kda}
+      </td>
+      <td style="font-family:var(--font-ui);color:var(--text-sub)">
+        ${(d.kills/d.games).toFixed(1)} / ${(d.deaths/d.games).toFixed(1)} / ${(d.assists/d.games).toFixed(1)}
+      </td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <table class="champ-stats-table">
+      <thead><tr><th>챔피언</th><th>게임</th><th>승률</th><th>KDA</th><th>평균 K/D/A</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`tab-${tabId}`).classList.add('active');
+}
+
+function fmtNum(n) { if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1000) return (n/1000).toFixed(1)+'k'; return String(n); }
+function timeSince(ts) {
+  const s=Math.floor(Date.now()/1000-ts);
+  if(s<3600) return `${Math.floor(s/60)}분 전`;
+  if(s<86400) return `${Math.floor(s/3600)}시간 전`;
+  if(s<604800) return `${Math.floor(s/86400)}일 전`;
+  return new Date(ts*1000).toLocaleDateString('ko-KR');
+}
+function navigateTo(url) { document.body.style.transition='opacity .3s,transform .3s'; document.body.style.opacity='0'; document.body.style.transform='translateY(-8px)'; setTimeout(()=>location.href=url,280); }
+function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ─── 초기화 ─── */
+async function init() {
+  parseParams();
+  if (!S.puuid) { location.href='/RiotSearch/'; return; }
+  renderProfile();
+  await Promise.allSettled([loadLeague(), loadMastery(), initMatches()]);
+}
+init();
+</script>
+
+<div id="match-modal-overlay" onclick="closeMatchModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9000;overflow-y:auto;padding:32px 16px;">
+  <div id="match-modal" onclick="event.stopPropagation()" style="
+    max-width:860px;margin:0 auto;
+    background:#0d0d0d;border:1px solid #2a2a2a;border-radius:12px;
+    overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,0.95);">
+
+    <!-- 모달 헤더 -->
+    <div id="modal-header" style="padding:16px 20px;border-bottom:1px solid #2a2a2a;background:#111;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span id="modal-result-badge" style="font-family:var(--font-ui);font-size:11px;font-weight:700;letter-spacing:2px;padding:4px 10px;border-radius:4px;"></span>
+        <span id="modal-queue" style="font-family:var(--font-ui);font-size:13px;font-weight:600;color:#c0b8a8;"></span>
+        <span id="modal-duration" style="font-family:var(--font-ui);font-size:13px;color:#a09880;"></span>
+        <span id="modal-date" style="font-family:var(--font-ui);font-size:11px;color:#807a72;"></span>
+      </div>
+      <button onclick="closeMatchModal()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px 8px;">✕</button>
+    </div>
+
+    <!-- 팀 테이블 -->
+    <div style="padding:16px 20px;background:#0d0d0d;">
+
+      <!-- 팀1 (블루) -->
+      <div style="margin-bottom:20px;">
+        <div id="modal-team1-label" style="font-family:var(--font-ui);font-size:10px;font-weight:700;letter-spacing:2px;margin-bottom:10px;padding:6px 2px;border-bottom:1px solid #1e1e1e;"></div>
+        <div class="modal-table-scroll">
+        <table class="modal-team-table" style="width:100%;border-collapse:collapse;" id="modal-team1-table">
+          <thead>
+            <tr style="font-family:var(--font-ui);font-size:11px;color:#999;letter-spacing:1px;background:#111;font-weight:600;">
+              <th style="text-align:left;padding:4px 6px;font-weight:600;">소환사</th>
+              <th style="text-align:center;padding:4px 6px;font-weight:600;">K/D/A</th>
+              <th style="text-align:center;padding:4px 6px;font-weight:600;">KDA</th>
+              <th style="text-align:center;padding:4px 6px;font-weight:600;">CS</th>
+              <th style="text-align:center;padding:4px 6px;font-weight:600;">피해량</th>
+              <th style="text-align:center;padding:4px 6px;font-weight:600;">골드</th>
+              <th style="text-align:right;padding:4px 6px;font-weight:600;">아이템</th>
+            </tr>
+          </thead>
+          <tbody id="modal-team1-body"></tbody>
+        </table>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid #2a2a2a;margin:8px 0 20px;"></div>
+
+      <!-- 팀2 (레드) -->
+      <div>
+        <div id="modal-team2-label" style="font-family:var(--font-ui);font-size:10px;font-weight:700;letter-spacing:2px;margin-bottom:10px;padding:6px 2px;border-bottom:1px solid #1e1e1e;"></div>
+        <div class="modal-table-scroll">
+        <table class="modal-team-table" style="width:100%;border-collapse:collapse;" id="modal-team2-table">
+          <thead>
+            <tr style="font-family:var(--font-ui);font-size:11px;color:#999;letter-spacing:1px;background:#111;font-weight:600;">
+              <th style="text-align:left;padding:4px 6px;font-weight:600;">소환사</th>
+              <th style="text-align:center;padding:4px 6px;font-weight:600;">K/D/A</th>
+              <th style="text-align:center;padding:4px 6px;font-weight:600;">KDA</th>
+              <th style="text-align:center;padding:4px 6px;font-weight:600;">CS</th>
+              <th style="text-align:center;padding:4px 6px;font-weight:600;">피해량</th>
+              <th style="text-align:center;padding:4px 6px;font-weight:600;">골드</th>
+              <th style="text-align:right;padding:4px 6px;font-weight:600;">아이템</th>
+            </tr>
+          </thead>
+          <tbody id="modal-team2-body"></tbody>
+        </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+#match-modal-overlay { animation: fadeIn 0.15s ease; }
+@keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+.modal-player-row { transition: background 0.1s; border-bottom: 1px solid #1e1e1e; }
+.modal-player-row:hover { background: #181818; }
+.modal-player-row.me { background: rgba(200,155,60,0.1); border-left: 2px solid var(--gold); }
+.modal-player-row.me:hover { background: rgba(200,155,60,0.16); }
+.modal-tier-badge {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.modal-champ-icon {
+  width: 36px; height: 36px; border-radius: 6px;
+  object-fit: cover; flex-shrink: 0;
+  border: 1px solid #333;
+}
+.modal-item-icon {
+  width: 26px; height: 26px; border-radius: 4px;
+  object-fit: cover;
+}
+.modal-item-slot {
+  width: 26px; height: 26px; border-radius: 4px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid #2a2a2a;
+  display: inline-block;
+}
+.champ-filter-btn {
+  font-family: var(--font-ui);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 5px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.champ-filter-btn:hover { border-color: var(--gold); color: var(--gold); }
+.champ-filter-btn.active { background: rgba(200,155,60,0.12); border-color: var(--gold); color: var(--gold); }
+
+.modal-table-scroll {
+  width: 100%;
+}
+.modal-team-table {
+  width: 100%;
+  min-width: 100%;
+}
+@media (max-width: 768px) {
+  #match-modal-overlay {
+    padding: 14px 8px;
+  }
+  #match-modal {
+    max-width: 100%;
+    border-radius: 10px;
+  }
+  #modal-header {
+    padding: 14px 14px !important;
+    align-items: flex-start !important;
+    gap: 10px;
+  }
+  #modal-header > div:first-child {
+    min-width: 0;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  #match-modal-overlay > #match-modal > div:nth-of-type(2) {
+    padding: 12px 10px !important;
+  }
+  .modal-table-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+  }
+  .modal-team-table {
+    min-width: 760px;
+  }
+  .modal-team-table th,
+  .modal-team-table td {
+    white-space: nowrap;
+  }
+  .modal-team-table th:first-child,
+  .modal-team-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #0d0d0d;
+  }
+  .modal-team-table thead th:first-child {
+    background: #111;
+    z-index: 3;
+  }
+  .modal-player-row.me td:first-child {
+    background: #20190c;
+  }
+  .modal-item-icon,
+  .modal-item-slot {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+</style>
+<script>
+window.addEventListener('pageshow', (e) => {
+  const overlay = document.getElementById('goto-loading');
+  if (overlay) overlay.remove();
+  if (e.persisted) {
+    document.body.style.opacity = '1';
+    document.body.style.transform = 'none';
+  }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMatchModal(); });
+</script>
+</body>
+
+</html>

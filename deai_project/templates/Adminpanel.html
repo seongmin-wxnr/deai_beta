@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deai — Admin Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Styrene+A:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg      : #0a0a0a;
+      --surface : #111111;
+      --card    : #161616;
+      --border  : rgba(255,255,255,0.07);
+      --text    : #e8e3d8;
+      --muted   : rgba(232,227,216,0.4);
+      --accent  : #c9a84c;
+      --red     : #ef4444;
+      --red-dim : rgba(239,68,68,0.12);
+      --green   : #10b981;
+      --green-dim: rgba(16,185,129,0.12);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Styrene A', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── 노이즈 텍스처 ── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      opacity: 0.02;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── 헤더 ── */
+    .admin-header {
+      position: fixed; top:0; left:0; right:0;
+      z-index: 50;
+      background: rgba(10,10,10,0.9);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex; align-items: center; gap: 14px;
+    }
+
+    .header-logo {
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .logo-badge {
+      background: var(--red);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .header-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.2px;
+    }
+
+    .header-divider {
+      width: 1px; height: 20px;
+      background: var(--border);
+    }
+
+    .header-sub {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .header-right {
+      display: flex; align-items: center; gap: 16px;
+    }
+
+    .admin-tag {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 12px;
+      background: rgba(201,168,76,0.1);
+      border: 1px solid rgba(201,168,76,0.25);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .btn-back {
+      font-size: 12px; color: var(--muted);
+      background: none; border: none;
+      cursor: pointer; font-family: inherit;
+      transition: color 0.2s;
+      text-decoration: none;
+    }
+    .btn-back:hover { color: var(--text); }
+
+    /* ── 레이아웃 ── */
+    .admin-wrap {
+      position: relative; z-index: 1;
+      padding: 80px 32px 40px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* ── 통계 카드 ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 32px;
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+    .stat-card.red::before   { background: var(--red); }
+    .stat-card.amber::before { background: var(--accent); }
+    .stat-card.green::before { background: var(--green); }
+    .stat-card.blue::before  { background: #60a5fa; }
+
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px; font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .stat-card.red   .stat-value { color: var(--red); }
+    .stat-card.amber .stat-value { color: var(--accent); }
+    .stat-card.green .stat-value { color: var(--green); }
+    .stat-card.blue  .stat-value { color: #60a5fa; }
+
+    .stat-label {
+      font-size: 12px; color: var(--muted);
+    }
+
+    /* ── 섹션 헤더 ── */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+      animation: fadeUp 0.5s 0.1s ease both;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .filter-tabs {
+      display: flex; gap: 6px;
+    }
+
+    .filter-tab {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer; font-family: inherit;
+      transition: all 0.2s;
+    }
+    .filter-tab:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .filter-tab.active {
+      background: rgba(201,168,76,0.1);
+      border-color: rgba(201,168,76,0.3);
+      color: var(--accent);
+    }
+
+    /* ── 신고 목록 ── */
+    .report-list {
+      display: flex; flex-direction: column; gap: 8px;
+      animation: fadeUp 0.5s 0.15s ease both;
+    }
+
+    .report-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex; align-items: center; gap: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .report-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .report-card.pending::before  { background: var(--red);    opacity: 1; }
+    .report-card.blocked::before  { background: var(--accent); opacity: 1; }
+    .report-card.dismissed::before{ background: var(--green);  opacity: 1; }
+
+    .report-card:hover {
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.12);
+      transform: translateX(3px);
+    }
+
+    .report-status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-pending   { background: var(--red);    box-shadow: 0 0 6px var(--red); }
+    .dot-blocked   { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .dot-dismissed { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+
+    .report-info { flex: 1; min-width: 0; }
+
+    .report-top {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 5px;
+    }
+
+    .report-category {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(239,68,68,0.2);
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+    }
+
+    .report-target {
+      font-size: 14px; font-weight: 600;
+      color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .report-meta {
+      display: flex; align-items: center; gap: 12px;
+    }
+
+    .report-meta-item {
+      font-size: 12px; color: var(--muted);
+      display: flex; align-items: center; gap: 4px;
+    }
+
+    .report-time {
+      font-size: 11px; color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      flex-shrink: 0;
+    }
+
+    .status-badge {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+      flex-shrink: 0;
+    }
+    .badge-pending   { background: var(--red-dim);   color: var(--red);    border: 1px solid rgba(239,68,68,0.2); }
+    .badge-blocked   { background: rgba(201,168,76,0.1); color: var(--accent); border: 1px solid rgba(201,168,76,0.2); }
+    .badge-dismissed { background: var(--green-dim); color: var(--green);  border: 1px solid rgba(16,185,129,0.2); }
+
+    /* ── 빈 상태 ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      font-size: 14px;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+    }
+    .empty-icon { font-size: 32px; margin-bottom: 12px; }
+
+    /* ── 모달 ── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(6px);
+      z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+    .modal-card {
+      width: 100%; max-width: 560px;
+      background: #141414;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 32px;
+      margin: 20px;
+      animation: modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+
+    @keyframes modalIn {
+      from { opacity:0; transform: scale(0.93) translateY(16px); }
+      to   { opacity:1; transform: scale(1)    translateY(0); }
+    }
+
+    .modal-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .modal-title {
+      font-size: 18px; font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .modal-close {
+      background: none; border: none;
+      color: var(--muted); font-size: 18px;
+      cursor: pointer; transition: color 0.2s;
+      padding: 2px;
+    }
+    .modal-close:hover { color: var(--text); }
+
+    /* 신고 상세 정보 */
+    .detail-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px; margin-bottom: 16px;
+    }
+
+    .detail-box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .detail-box-label {
+      font-size: 10px; color: var(--muted);
+      letter-spacing: 1px; text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 6px;
+    }
+
+    .detail-box-value {
+      font-size: 14px; font-weight: 600;
+      color: var(--text);
+    }
+
+    .detail-reason {
+      background: rgba(239,68,68,0.05);
+      border: 1px solid rgba(239,68,68,0.15);
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.7;
+      margin-bottom: 24px;
+      white-space: pre-wrap;
+    }
+
+    .detail-reason-label {
+      font-size: 10px; color: var(--red);
+      letter-spacing: 1px; text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 8px;
+    }
+
+    /* 이미 처리된 상태 배너 */
+    .status-banner {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .banner-blocked   { background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.2); color: var(--accent); }
+    .banner-dismissed { background: var(--green-dim); border: 1px solid rgba(16,185,129,0.2); color: var(--green); }
+
+    /* 액션 버튼 */
+    .action-btns {
+      display: flex; gap: 10px;
+    }
+
+    .btn-block {
+      flex: 1; padding: 12px;
+      background: var(--red);
+      border: none; border-radius: 10px;
+      color: #fff; font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      transition: all 0.2s;
+    }
+    .btn-block:hover {
+      background: #dc2626;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(239,68,68,0.3);
+    }
+
+    .btn-dismiss {
+      flex: 1; padding: 12px;
+      background: var(--green-dim);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: 10px;
+      color: var(--green); font-size: 14px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: all 0.2s;
+    }
+    .btn-dismiss:hover {
+      background: rgba(16,185,129,0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn-cancel-modal {
+      padding: 12px 20px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--muted); font-size: 14px;
+      cursor: pointer; font-family: inherit;
+      transition: all 0.2s;
+    }
+    .btn-cancel-modal:hover {
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+    }
+
+    /* ── 애니메이션 ── */
+    @keyframes fadeUp {
+      from { opacity:0; transform: translateY(12px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    /* ── 반응형 ── */
+    @media (max-width: 700px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .admin-wrap { padding: 80px 16px 40px; }
+      .detail-row { grid-template-columns: 1fr; }
+    }
+
+    /* ── 분석 모달 ── */
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .analytics-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .analytics-card.full { grid-column: span 2; }
+    .analytics-card-title {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .analytics-big {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 36px; font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .analytics-sub {
+      font-size: 12px; color: var(--muted);
+    }
+    /* 막대 차트 */
+    .bar-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 10px;
+    }
+    .bar-label {
+      font-size: 12px; color: var(--text);
+      width: 100px; flex-shrink: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .bar-track {
+      flex: 1; height: 8px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 99px; overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%; border-radius: 99px;
+      transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .bar-val {
+      font-size: 11px; color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      width: 32px; text-align: right; flex-shrink: 0;
+    }
+    /* 원형 차트 */
+    .donut-wrap {
+      display: flex; align-items: center; gap: 20px;
+    }
+    .donut-svg { flex-shrink: 0; }
+    .donut-legend { flex: 1; }
+    .legend-item {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 8px; font-size: 12px; color: var(--text);
+    }
+    .legend-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .legend-pct {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--muted);
+    }
+    /* 타임라인 */
+    .timeline-item {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding-bottom: 12px; margin-bottom: 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .timeline-item:last-child { border-bottom: none; }
+    .timeline-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); flex-shrink: 0; margin-top: 6px;
+    }
+    .timeline-text { font-size: 13px; color: var(--text); }
+    .timeline-time { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+    /* TOP 리스트 */
+    .rank-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .rank-item:last-child { border-bottom: none; }
+    .rank-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--muted);
+      width: 20px; text-align: center; flex-shrink: 0;
+    }
+    .rank-num.top1 { color: #fbbf24; }
+    .rank-num.top2 { color: #9ca3af; }
+    .rank-num.top3 { color: #cd7c2f; }
+    .rank-name { flex: 1; font-size: 13px; color: var(--text); }
+    .rank-val {
+      font-size: 12px; color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .btn-user-lookup {
+      padding: 6px 14px;
+      background: rgba(201,168,76,0.1);
+      border: 1px solid rgba(201,168,76,0.3);
+      border-radius: 8px;
+      color: var(--accent);
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: all 0.2s;
+    }
+    .btn-user-lookup:hover { background: rgba(201,168,76,0.2); transform: translateY(-1px); }
+    @media (max-width: 600px) {
+      .analytics-grid { grid-template-columns: 1fr; }
+      .analytics-card.full { grid-column: span 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── 헤더 ── -->
+  <header class="admin-header">
+    <div class="header-left">
+      <div class="header-logo">
+        <span class="logo-badge">ADMIN</span>
+        <span class="header-title">Deai 관리자 패널</span>
+      </div>
+      <div class="header-divider"></div>
+      <span class="header-sub" id="header-time">--:--:--</span>
+    </div>
+    <div class="header-right">
+      <div class="admin-tag">⚙ admin</div>
+      <button class="btn-user-lookup" onclick="openUserLookup()" style="margin-right:6px">🔍 유저 조회</button>
+      <button class="btn-user-lookup" onclick="openAnalytics()" style="background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.3);color:#60a5fa">📊 사이트 분석</button>
+      <button class="nav-link" onclick="navigateTo('/Deai_main/')">메인으로 이동</button>
+    </div>
+  </header>
+
+  <!-- ── 본문 ── -->
+  <div class="admin-wrap">
+
+    <!-- 통계 -->
+    <div class="stats-row">
+      <div class="stat-card red">
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-label">전체 신고</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-value" id="stat-pending">0</div>
+        <div class="stat-label">미처리</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-value" id="stat-blocked">0</div>
+        <div class="stat-label">차단됨</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-value" id="stat-dismissed">0</div>
+        <div class="stat-label">유지됨</div>
+      </div>
+    </div>
+
+    <!-- 신고 목록 -->
+    <div class="section-header">
+      <span class="section-title">신고 내역</span>
+      <div class="filter-tabs">
+        <button class="filter-tab active" onclick="setFilter('all', this)">전체</button>
+        <button class="filter-tab" onclick="setFilter('pending', this)">미처리</button>
+        <button class="filter-tab" onclick="setFilter('blocked', this)">차단됨</button>
+        <button class="filter-tab" onclick="setFilter('dismissed', this)">유지됨</button>
+      </div>
+    </div>
+
+    <div class="report-list" id="report-list">
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        불러오는 중...
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 사이트 분석 모달 ── -->
+  <div class="modal-overlay" id="analytics-modal" onclick="handleAnalyticsOverlay(event)" style="z-index:300">
+    <div class="modal-card" style="max-width:780px;max-height:88vh;overflow-y:auto">
+
+      <div class="modal-header" style="margin-bottom:20px">
+        <div>
+          <div class="modal-title">📊 사이트 전체 분석</div>
+          <div id="analytics-updated" style="font-size:11px;color:var(--muted);margin-top:3px">불러오는 중...</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button onclick="loadAnalytics()"
+                  style="padding:6px 14px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.3);
+                         border-radius:8px;color:#60a5fa;font-size:12px;cursor:pointer;font-family:inherit">
+            🔄 새로고침
+          </button>
+          <button class="modal-close" onclick="closeAnalytics()">✕</button>
+        </div>
+      </div>
+
+      <div id="analytics-body">
+        <div style="text-align:center;padding:60px;color:var(--muted)">불러오는 중...</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── 유저 데이터 조회 모달 ── -->
+  <div class="modal-overlay" id="user-lookup-modal" onclick="handleUserLookupOverlay(event)" style="z-index:300">
+    <div class="modal-card" style="max-width:620px;max-height:85vh;overflow-y:auto">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">🔍 유저 데이터 조회</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">유저명으로 검색하세요</div>
+        </div>
+        <button class="modal-close" onclick="closeUserLookup()">✕</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:20px">
+        <input id="lookup-input" type="text" placeholder="유저명 입력..."
+               onkeydown="if(event.key==='Enter') searchUser()"
+               style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);
+                      border-radius:8px;padding:10px 14px;color:var(--text);font-family:inherit;
+                      font-size:13px;outline:none"
+               onfocus="this.style.borderColor='rgba(201,168,76,0.4)'"
+               onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+        <button onclick="searchUser()"
+                style="padding:10px 22px;background:var(--accent);border:none;border-radius:8px;
+                       color:#1a1208;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px">검색</button>
+      </div>
+      <div id="lookup-result"></div>
+    </div>
+  </div>
+
+  <!-- ── 신고 상세 모달 ── -->
+  <div class="modal-overlay" id="detail-modal" onclick="handleDetailOverlay(event)">
+    <div class="modal-card">
+
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="modal-title">신고 상세</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px" id="modal-time"></div>
+        </div>
+        <button class="modal-close" onclick="closeDetailModal()">✕</button>
+      </div>
+
+      <!-- 처리 상태 배너 -->
+      <div id="status-banner" style="display:none"></div>
+
+      <!-- 신고 정보 -->
+      <div class="detail-row">
+        <div class="detail-box">
+          <div class="detail-box-label">신고 대상</div>
+          <div class="detail-box-value" id="modal-reported">—</div>
+        </div>
+        <div class="detail-box">
+          <div class="detail-box-label">신고자</div>
+          <div class="detail-box-value" id="modal-reporter">—</div>
+        </div>
+        <div class="detail-box">
+          <div class="detail-box-label">카테고리</div>
+          <div class="detail-box-value" id="modal-category">—</div>
+        </div>
+        <div class="detail-box">
+          <div class="detail-box-label">신고 ID</div>
+          <div class="detail-box-value" style="font-family:'JetBrains Mono',monospace;font-size:12px" id="modal-id">—</div>
+        </div>
+      </div>
+
+      <!-- 상세 사유 -->
+      <div class="detail-reason-label">상세 사유</div>
+      <div class="detail-reason" id="modal-detail">—</div>
+
+      <!-- 액션 버튼 -->
+      <div class="action-btns" id="action-btns">
+        <button class="btn-cancel-modal" onclick="closeDetailModal()">닫기</button>
+        <button class="btn-dismiss" onclick="handleAction('dismissed')">✅ 유지하기</button>
+        <button class="btn-block"   onclick="handleAction('blocked')">🚫 차단하기 (24h)</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let REPORTS     = [];
+    let currentFilter = 'all';
+    let currentReportId = null;
+
+    // ── 시간 표시 ──
+    function updateTime() {
+      const now = new Date();
+      document.getElementById('header-time').textContent =
+        now.toLocaleTimeString('ko-KR', { hour12: false });
+    }
+    updateTime();
+    setInterval(updateTime, 1000);
+
+    // ── 신고 목록 로드 ──
+    async function loadReports() {
+      try {
+        const res  = await fetch('/api/admin/reports/');
+        const data = await res.json();
+        if (data.success) {
+          REPORTS = data.reports;
+          updateStats();
+          renderList();
+        }
+      } catch(e) {
+        document.getElementById('report-list').innerHTML =
+          '<div class="empty-state"><div class="empty-icon">⚠️</div>불러오기 실패</div>';
+      }
+    }
+
+    // ── 통계 업데이트 ──
+    function updateStats() {
+      document.getElementById('stat-total').textContent     = REPORTS.length;
+      document.getElementById('stat-pending').textContent   = REPORTS.filter(r => r.status === 'pending').length;
+      document.getElementById('stat-blocked').textContent   = REPORTS.filter(r => r.status === 'blocked').length;
+      document.getElementById('stat-dismissed').textContent = REPORTS.filter(r => r.status === 'dismissed').length;
+    }
+
+    // ── 필터 ──
+    function setFilter(filter, btn) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderList();
+    }
+
+    // ── 목록 렌더링 ──
+    function renderList() {
+      const list = document.getElementById('report-list');
+      const filtered = currentFilter === 'all'
+        ? REPORTS
+        : REPORTS.filter(r => r.status === currentFilter);
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div>해당 신고가 없어요</div>`;
+        return;
+      }
+
+      const statusLabel = { pending: '미처리', blocked: '차단됨', dismissed: '유지됨' };
+      const badgeClass  = { pending: 'badge-pending', blocked: 'badge-blocked', dismissed: 'badge-dismissed' };
+      const dotClass    = { pending: 'dot-pending',   blocked: 'dot-blocked',   dismissed: 'dot-dismissed' };
+
+      list.innerHTML = filtered.map(r => `
+        <div class="report-card ${r.status}" onclick="openDetailModal(${r.id})">
+          <div class="report-status-dot ${dotClass[r.status]}"></div>
+          <div class="report-info">
+            <div class="report-top">
+              <span class="report-category">${r.category}</span>
+              <span class="report-target">🎯 ${r.reported}</span>
+            </div>
+            <div class="report-meta">
+              <span class="report-meta-item">👤 신고자: ${r.reporter}</span>
+              <span class="report-meta-item" style="color:var(--muted);font-size:11px">
+                ${r.detail.length > 40 ? r.detail.slice(0,40) + '…' : r.detail}
+              </span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+            <span class="status-badge ${badgeClass[r.status]}">${statusLabel[r.status]}</span>
+            <span class="report-time">${r.created_at}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ── 상세 모달 ──
+    function openDetailModal(reportId) {
+      const r = REPORTS.find(r => r.id === reportId);
+      if (!r) return;
+      currentReportId = reportId;
+
+      document.getElementById('modal-title').textContent    = `신고 #${r.id} — ${r.reported}`;
+      document.getElementById('modal-time').textContent     = r.created_at;
+      document.getElementById('modal-reported').textContent = r.reported;
+      document.getElementById('modal-reporter').textContent = r.reporter;
+      document.getElementById('modal-category').textContent = r.category;
+      document.getElementById('modal-id').textContent       = `#${String(r.id).padStart(5,'0')}`;
+      document.getElementById('modal-detail').textContent   = r.detail;
+
+      // 처리 상태 배너
+      const banner    = document.getElementById('status-banner');
+      const actionBtns = document.getElementById('action-btns');
+      if (r.status === 'blocked') {
+        banner.className   = 'status-banner banner-blocked';
+        banner.innerHTML   = `🚫 차단 처리된 신고입니다. <span style="font-size:11px;opacity:0.75">(${r.reported} 차단 중)</span>`;
+        banner.style.display = 'flex';
+        actionBtns.innerHTML = `
+          <button class="btn-cancel-modal" onclick="closeDetailModal()">닫기</button>
+          <button onclick="handleUnblock('${r.reported}')"
+                  style="flex:1;padding:12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);
+                         border-radius:10px;color:#10b981;font-size:14px;font-weight:600;
+                         cursor:pointer;font-family:inherit;transition:all 0.2s"
+                  onmouseover="this.style.background='rgba(16,185,129,0.22)'"
+                  onmouseout="this.style.background='rgba(16,185,129,0.12)'">
+            🔓 차단 해제
+          </button>`;
+      } else if (r.status === 'dismissed') {
+        banner.className   = 'status-banner banner-dismissed';
+        banner.innerHTML   = '✅ 유지 처리된 신고입니다.';
+        banner.style.display = 'flex';
+        actionBtns.innerHTML = '<button class="btn-cancel-modal" onclick="closeDetailModal()">닫기</button>';
+      } else {
+        banner.style.display = 'none';
+        actionBtns.innerHTML = `
+          <button class="btn-cancel-modal" onclick="closeDetailModal()">닫기</button>
+          <button class="btn-dismiss" onclick="handleAction('dismissed')">✅ 유지하기</button>
+          <button class="btn-block"   onclick="handleAction('blocked')">🚫 차단하기 (24h)</button>`;
+      }
+
+      document.getElementById('detail-modal').classList.add('open');
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detail-modal').classList.remove('open');
+    }
+
+    function handleDetailOverlay(e) {
+      if (e.target === document.getElementById('detail-modal')) closeDetailModal();
+    }
+
+    // ── 액션 처리 ──
+    async function handleUnblock(username) {
+      if (!confirm(`"${username}" 유저의 차단을 즉시 해제하시겠습니까?`)) return;
+      try {
+        const res  = await fetch('/api/admin/unblock/', {
+          method : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body   : JSON.stringify({ username }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeDetailModal();
+          await loadReports();
+          alert(`✅ ${username} 유저의 차단이 해제되었습니다.`);
+        } else {
+          alert(data.message || '차단 해제 실패');
+        }
+      } catch(e) {
+        alert('네트워크 오류가 발생했습니다.');
+      }
+    }
+
+    async function handleAction(action) {
+      const r = REPORTS.find(r => r.id === currentReportId);
+      if (!r) return;
+
+      const confirmMsg = action === 'blocked'
+        ? `"${r.reported}" 유저를 24시간 차단하시겠습니까?`
+        : `"${r.reported}" 유저의 신고를 유지(무시) 처리하시겠습니까?`;
+
+      if (!confirm(confirmMsg)) return;
+
+      try {
+        const res  = await fetch('/api/admin/report/action/', {
+          method : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body   : JSON.stringify({ report_id: currentReportId, action }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeDetailModal();
+          await loadReports();
+          alert(action === 'blocked'
+            ? `✅ ${r.reported} 유저가 24시간 차단되었습니다.`
+            : `✅ 신고가 유지 처리되었습니다.`);
+        } else {
+          alert(data.message || '처리 실패');
+        }
+      } catch(e) {
+        alert('네트워크 오류가 발생했습니다.');
+      }
+    }
+
+    // ── 초기화 ──
+    loadReports();
+    setInterval(loadReports, 3000); // 30초마다 갱신
+
+    function navigateTo(url) {
+      document.body.classList.add('fade-out');
+      setTimeout(() => { window.location.href = url; }, 400);
+    }
+
+    // ══════════════════════════
+    // 스타일 상수
+    // ══════════════════════════
+    const BS = "background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 14px";
+    const LS = "font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:5px";
+    const VS = "font-size:14px;font-weight:600;color:var(--text)";
+    const TS = "font-size:11px;padding:3px 9px;background:rgba(255,255,255,0.06);border-radius:4px;color:var(--muted)";
+
+    // ══════════════════════════
+    // 유저 조회
+    // ══════════════════════════
+    function openUserLookup() {
+      document.getElementById('lookup-input').value = '';
+      document.getElementById('lookup-result').innerHTML = '';
+      document.getElementById('user-lookup-modal').classList.add('open');
+      setTimeout(() => document.getElementById('lookup-input').focus(), 100);
+    }
+    function closeUserLookup() {
+      document.getElementById('user-lookup-modal').classList.remove('open');
+    }
+    function handleUserLookupOverlay(e) {
+      if (e.target === document.getElementById('user-lookup-modal')) closeUserLookup();
+    }
+    async function searchUser() {
+      const q      = document.getElementById('lookup-input').value.trim();
+      const result = document.getElementById('lookup-result');
+      if (!q) return;
+      result.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">🔍 검색 중...</div>`;
+      try {
+        const res  = await fetch(`/api/admin/user/?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        if (!data.success) {
+          result.innerHTML = `<div style="text-align:center;padding:24px;color:#ef4444;font-size:13px">${data.message}</div>`;
+          return;
+        }
+        const u = data.user;
+        const GAME_NAME = { lol:'리그 오브 레전드', val:'발로란트', ow:'오버워치 2', fifa:'피파 온라인 4', genshin:'원신' };
+        const blockedBadge = u.blocked_until
+          ? `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px">
+               <span style="padding:3px 10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:4px;font-size:11px;color:#ef4444">🚫 차단중 (~${u.blocked_until})</span>
+               <button onclick="handleUnblock('${u.username}')"
+                       style="padding:3px 12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);
+                              border-radius:4px;font-size:11px;color:#10b981;cursor:pointer;font-family:inherit;transition:all 0.2s"
+                       onmouseover="this.style.background='rgba(16,185,129,0.25)'"
+                       onmouseout="this.style.background='rgba(16,185,129,0.12)'">🔓 차단 해제</button>
+             </div>`
+          : `<span style="padding:3px 10px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);border-radius:4px;font-size:11px;color:#10b981">✅ 정상</span>`;
+        const gamesHTML = u.games.length === 0
+          ? `<div style="color:var(--muted);font-size:13px;padding:12px 0">등록된 게임 없음</div>`
+          : u.games.map(g => `
+              <div style="${BS};margin-bottom:8px">
+                <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">${GAME_NAME[g.game_id]||g.game_id}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  ${g.name_tag      ? `<span style="${TS}">🎮 ${g.name_tag}</span>`         : ''}
+                  ${g.tier          ? `<span style="${TS}">🏅 ${g.tier}</span>`             : ''}
+                  ${g.sub_info      ? `<span style="${TS}">🎯 ${g.sub_info}</span>`         : ''}
+                  ${g.score_current != null ? `<span style="${TS}">📊 현재 ${g.score_current}</span>` : ''}
+                  ${g.score_best    != null ? `<span style="${TS}">⬆ 최고 ${g.score_best}</span>`    : ''}
+                </div>
+              </div>`).join('');
+        result.innerHTML = `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+            <div style="${BS}"><div style="${LS}">유저명</div><div style="${VS}">${u.username}</div></div>
+            <div style="${BS}"><div style="${LS}">상태</div><div style="margin-top:2px">${blockedBadge}</div></div>
+            <div style="${BS}"><div style="${LS}">이메일</div><div style="${VS}">${u.email}</div></div>
+            <div style="${BS}"><div style="${LS}">가입일</div><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text)">${u.joined_at}</div></div>
+            <div style="${BS};grid-column:span 2"><div style="${LS}">비밀번호 해시</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);word-break:break-all;line-height:1.6;margin-top:4px">${u.password_hash}</div>
+            </div>
+          </div>
+          <div style="${LS};margin-bottom:10px">게임 정보 (${u.games.length}개)</div>
+          ${gamesHTML}`;
+      } catch(e) {
+        result.innerHTML = `<div style="text-align:center;padding:24px;color:#ef4444;font-size:13px">네트워크 오류: ${e.message}</div>`;
+      }
+    }
+
+    // ══════════════════════════
+    // 사이트 분석
+    // ══════════════════════════
+    function openAnalytics() {
+      document.getElementById('analytics-modal').classList.add('open');
+      loadAnalytics();
+    }
+    function closeAnalytics() {
+      document.getElementById('analytics-modal').classList.remove('open');
+    }
+    function handleAnalyticsOverlay(e) {
+      if (e.target === document.getElementById('analytics-modal')) closeAnalytics();
+    }
+
+    async function loadAnalytics() {
+      const body = document.getElementById('analytics-body');
+      body.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">📊 분석 중...</div>';
+      try {
+        const res  = await fetch('/api/admin/analytics/');
+        const data = await res.json();
+        if (!data.success) { body.innerHTML = `<div style="color:#ef4444;padding:20px">${data.message}</div>`; return; }
+        document.getElementById('analytics-updated').textContent = `마지막 갱신: ${new Date().toLocaleTimeString('ko-KR')}`;
+        renderAnalytics(data);
+      } catch(e) {
+        body.innerHTML = `<div style="color:#ef4444;padding:20px">네트워크 오류: ${e.message}</div>`;
+      }
+    }
+
+    function renderAnalytics(d) {
+      const GAME_COLORS = { lol:'#c89b3c', val:'#ef4444', ow:'#f5a623', fifa:'#10b981', genshin:'#a78bfa' };
+      const GAME_NAME   = { lol:'리그 오브 레전드', val:'발로란트', ow:'오버워치 2', fifa:'피파 온라인 4', genshin:'원신' };
+
+      // ── 게임 분포 도넛 ──
+      const gameEntries = Object.entries(d.game_dist).sort((a,b) => b[1]-a[1]);
+      const gameTotal   = gameEntries.reduce((s,[,v]) => s+v, 0) || 1;
+      let   offset = 0;
+      const donutR = 40, donutC = 50, circ = 2 * Math.PI * donutR;
+      const slices = gameEntries.map(([id, cnt]) => {
+        const pct  = cnt / gameTotal;
+        const dash = pct * circ;
+        const sl   = { id, cnt, pct, dash, offset };
+        offset += dash;
+        return sl;
+      });
+      const donutSVG = `<svg class="donut-svg" width="100" height="100" viewBox="0 0 100 100">
+        <circle cx="${donutC}" cy="${donutC}" r="${donutR}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="14"/>
+        ${slices.map(s => `<circle cx="${donutC}" cy="${donutC}" r="${donutR}" fill="none"
+          stroke="${GAME_COLORS[s.id]||'#666'}" stroke-width="14"
+          stroke-dasharray="${s.dash} ${circ - s.dash}"
+          stroke-dashoffset="${circ/4 - s.offset}"
+          style="transition:stroke-dasharray 0.8s ease"/>`).join('')}
+      </svg>`;
+
+      // ── 신고 카테고리 도넛 ──
+      const repEntries = Object.entries(d.report_category).sort((a,b) => b[1]-a[1]);
+      const repTotal   = repEntries.reduce((s,[,v]) => s+v, 0) || 1;
+      const REP_COLORS = ['#ef4444','#f97316','#eab308','#8b5cf6','#6b7280'];
+      let rOffset = 0;
+      const repSlices = repEntries.map(([id, cnt], i) => {
+        const pct  = cnt / repTotal;
+        const dash = pct * circ;
+        const sl   = { id, cnt, pct, dash, offset: rOffset, color: REP_COLORS[i]||'#666' };
+        rOffset += dash;
+        return sl;
+      });
+      const repDonutSVG = `<svg class="donut-svg" width="100" height="100" viewBox="0 0 100 100">
+        <circle cx="${donutC}" cy="${donutC}" r="${donutR}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="14"/>
+        ${repSlices.map(s => `<circle cx="${donutC}" cy="${donutC}" r="${donutR}" fill="none"
+          stroke="${s.color}" stroke-width="14"
+          stroke-dasharray="${s.dash} ${circ - s.dash}"
+          stroke-dashoffset="${circ/4 - s.offset}"/>`).join('')}
+      </svg>`;
+
+      // ── 막대 (게임별 게시글) ──
+      const postEntries = Object.entries(d.post_by_game).sort((a,b) => b[1]-a[1]);
+      const postMax     = Math.max(...postEntries.map(([,v])=>v), 1);
+      const postBars    = postEntries.map(([id,cnt]) => `
+        <div class="bar-row">
+          <div class="bar-label">${GAME_NAME[id]||id}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(cnt/postMax*100).toFixed(1)}%;background:${GAME_COLORS[id]||'#666'}"></div></div>
+          <div class="bar-val">${cnt}</div>
+        </div>`).join('');
+
+      // ── TOP 5 게시글 작성자 ──
+      const rankNumClass = i => i===0?'top1':i===1?'top2':i===2?'top3':'';
+      const topPostersHTML = d.top_posters.map((u,i) => `
+        <div class="rank-item">
+          <div class="rank-num ${rankNumClass(i)}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+          <div class="rank-name">${u.username}</div>
+          <div class="rank-val">${u.count}개</div>
+        </div>`).join('');
+
+      // ── TOP 5 활성 유저 (채팅) ──
+      const topChatHTML = d.top_chatters.map((u,i) => `
+        <div class="rank-item">
+          <div class="rank-num ${rankNumClass(i)}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+          <div class="rank-name">${u.username}</div>
+          <div class="rank-val">${u.count}개</div>
+        </div>`).join('');
+
+      // ── 최근 활동 타임라인 ──
+      const timelineHTML = d.recent_activity.map(a => `
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:${a.color}"></div>
+          <div>
+            <div class="timeline-text">${a.text}</div>
+            <div class="timeline-time">${a.time}</div>
+          </div>
+        </div>`).join('');
+
+      document.getElementById('analytics-body').innerHTML = `
+        <!-- 요약 수치 -->
+        <div class="analytics-grid">
+          <div class="analytics-card">
+            <div class="analytics-card-title">👥 총 유저</div>
+            <div class="analytics-big" style="color:#60a5fa">${d.total_users}</div>
+            <div class="analytics-sub">활성 ${d.active_users}명 · 차단 ${d.blocked_users}명</div>
+          </div>
+          <div class="analytics-card">
+            <div class="analytics-card-title">📝 총 게시글</div>
+            <div class="analytics-big" style="color:var(--accent)">${d.total_posts}</div>
+            <div class="analytics-sub">모집중 ${d.open_posts}개 · 마감 ${d.closed_posts}개</div>
+          </div>
+          <div class="analytics-card">
+            <div class="analytics-card-title">💬 총 메시지</div>
+            <div class="analytics-big" style="color:#10b981">${d.total_messages}</div>
+            <div class="analytics-sub">파티채팅 ${d.party_messages}개 · DM ${d.dm_messages}개</div>
+          </div>
+          <div class="analytics-card">
+            <div class="analytics-card-title">🚨 총 신고</div>
+            <div class="analytics-big" style="color:#ef4444">${d.total_reports}</div>
+            <div class="analytics-sub">미처리 ${d.pending_reports}건 · 처리 ${d.total_reports - d.pending_reports}건</div>
+          </div>
+        </div>
+
+        <!-- 게임 분포 + 게시글 분포 -->
+        <div class="analytics-grid">
+          <div class="analytics-card">
+            <div class="analytics-card-title">🎮 게임별 유저 분포</div>
+            <div class="donut-wrap">
+              ${donutSVG}
+              <div class="donut-legend">
+                ${slices.map(s => `
+                  <div class="legend-item">
+                    <div class="legend-dot" style="background:${GAME_COLORS[s.id]||'#666'}"></div>
+                    <span>${GAME_NAME[s.id]||s.id}</span>
+                    <span class="legend-pct">${(s.pct*100).toFixed(0)}%</span>
+                  </div>`).join('')}
+              </div>
+            </div>
+          </div>
+          <div class="analytics-card">
+            <div class="analytics-card-title">📋 게임별 게시글 수</div>
+            ${postBars || '<div style="color:var(--muted);font-size:13px">데이터 없음</div>'}
+          </div>
+        </div>
+
+        <!-- 신고 카테고리 + TOP 게시글 작성자 -->
+        <div class="analytics-grid">
+          <div class="analytics-card">
+            <div class="analytics-card-title">🚨 신고 카테고리 분포</div>
+            <div class="donut-wrap">
+              ${repDonutSVG}
+              <div class="donut-legend">
+                ${repSlices.length ? repSlices.map(s => `
+                  <div class="legend-item">
+                    <div class="legend-dot" style="background:${s.color}"></div>
+                    <span>${s.id}</span>
+                    <span class="legend-pct">${(s.pct*100).toFixed(0)}%</span>
+                  </div>`).join('') : '<div style="color:var(--muted);font-size:13px">신고 없음</div>'}
+              </div>
+            </div>
+          </div>
+          <div class="analytics-card">
+            <div class="analytics-card-title">🏆 TOP 5 게시글 작성자</div>
+            ${topPostersHTML || '<div style="color:var(--muted);font-size:13px">데이터 없음</div>'}
+          </div>
+        </div>
+
+        <!-- 채팅 TOP + 최근 활동 -->
+        <div class="analytics-grid">
+          <div class="analytics-card">
+            <div class="analytics-card-title">💬 TOP 5 채팅 활성 유저</div>
+            ${topChatHTML || '<div style="color:var(--muted);font-size:13px">데이터 없음</div>'}
+          </div>
+          <div class="analytics-card">
+            <div class="analytics-card-title">🕐 최근 활동 타임라인</div>
+            ${timelineHTML || '<div style="color:var(--muted);font-size:13px">활동 없음</div>'}
+          </div>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>

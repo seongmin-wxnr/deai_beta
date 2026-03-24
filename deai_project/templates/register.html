@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>회원가입 · Deai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Styrene+A:wght@400;500&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/common.css' %}">
+  <link rel="stylesheet" href="{% static 'css/register_.css' %}">
+</head>
+<body>
+
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <div class="signup-wrap">
+
+    <button class="signup-logo" onclick="navigateTo('/')">
+      <span class="logo-name">Deai</span>
+    </button>
+
+    <h1 class="signup-headline">계정을 만들어보세요</h1>
+    <p class="signup-sub">게임 매칭을 시작하려면 계정이 필요합니다</p>
+
+    <div class="step-indicator">
+      <div class="step-item">
+        <div class="step-dot active" id="dot-1">1</div>
+        <span class="step-label active" id="label-1">기본 정보</span>
+      </div>
+      <div class="step-line" id="line-1"></div>
+      <div class="step-item">
+        <div class="step-dot" id="dot-2">2</div>
+        <span class="step-label" id="label-2">비밀번호</span>
+      </div>
+      <div class="step-line" id="line-2"></div>
+      <div class="step-item">
+        <div class="step-dot" id="dot-3">3</div>
+        <span class="step-label" id="label-3">약관 동의</span>
+      </div>
+      <div class="step-line" id="line-3"></div>
+      <div class="step-item">
+        <div class="step-dot" id="dot-4">4</div>
+        <span class="step-label" id="label-4">이메일 인증</span>
+      </div>
+    </div>
+
+    <div class="signup-card">
+
+      <div class="step-panel active" id="step-1">
+        <div class="step-title">기본 정보를 입력해주세요</div>
+        <div class="step-desc">사용할 닉네임과 이메일 주소를 입력해주세요.</div>
+
+        <div class="field">
+          <label>사용자 이름 <span class="field-hint">영문·숫자만 허용</span></label>
+          <input class="input-field" id="username" type="text"
+                 placeholder="영문, 숫자만 (예: gamer123)" autocomplete="off">
+          <div class="field-msg" id="msg-username"></div>
+        </div>
+
+        <div class="field">
+          <label>이메일 주소</label>
+          <input class="input-field" id="email" type="email"
+                 placeholder="null -> next">
+          <div class="field-msg" id="msg-email"></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary btn-full" onclick="goStep(2)">다음 →</button>
+        </div>
+      </div>
+
+
+      <div class="step-panel" id="step-2">
+        <div class="step-title">비밀번호를 설정하세요</div>
+        <div class="step-desc">8자 이상, 대문자·숫자·특수문자를 포함하면 더 안전합니다.</div>
+
+        <div class="field">
+          <label>비밀번호</label>
+          <input class="input-field" id="password" type="password"
+                 placeholder="비밀번호 입력" oninput="checkStrength()">
+          <div class="pw-strength">
+            <div class="pw-bar" id="pw-bar-1"></div>
+            <div class="pw-bar" id="pw-bar-2"></div>
+            <div class="pw-bar" id="pw-bar-3"></div>
+            <span class="pw-level" id="pw-level"></span>
+          </div>
+          <div class="field-msg" id="msg-password"></div>
+        </div>
+
+        <div class="field">
+          <label>비밀번호 확인</label>
+          <input class="input-field" id="password2" type="password"
+                 placeholder="비밀번호 재입력" oninput="checkConfirm()">
+          <div class="field-msg" id="msg-password2"></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-back" onclick="goStep(1)">← 이전</button>
+          <button class="btn btn-primary btn-full" onclick="goStep(3)">다음 →</button>
+        </div>
+      </div>
+
+
+      <div class="step-panel" id="step-3">
+        <div class="step-title">약관에 동의해주세요</div>
+        <div class="step-desc">서비스 이용을 위해 아래 항목에 동의가 필요합니다.</div>
+
+        <label class="check-item">
+          <input type="checkbox" id="chk-all" onchange="toggleAll(this)">
+          <div class="check-box">✓</div>
+          <span class="check-text" style="color:var(--text);font-weight:500">모두 동의합니다</span>
+        </label>
+
+        <div style="height:1px;background:var(--border);margin:12px 0 16px;"></div>
+
+        <label class="check-item">
+          <input type="checkbox" class="chk-single" id="chk-terms">
+          <div class="check-box">✓</div>
+          <span class="check-text"><a href="#">이용약관</a> 동의 (필수)</span>
+        </label>
+
+        <label class="check-item">
+          <input type="checkbox" class="chk-single" id="chk-privacy">
+          <div class="check-box">✓</div>
+          <span class="check-text"><a href="#">개인정보 처리방침</a> 동의 (필수)</span>
+        </label>
+
+        <label class="check-item">
+          <input type="checkbox" class="chk-single" id="chk-marketing">
+          <div class="check-box">✓</div>
+          <span class="check-text">마케팅 정보 수신 동의 (선택)</span>
+        </label>
+
+        <div class="field-msg error" id="msg-terms" style="margin-top:8px"></div>
+
+        <div class="btn-row">
+          <button class="btn btn-back" onclick="goStep(2)">← 이전</button>
+          <button class="btn btn-primary btn-full" id="btn-send-code" onclick="sendVerifyCode()">인증 코드 받기 →</button>
+        </div>
+      </div>
+
+
+      <!-- step 4: 이메일 인증 -->
+      <div class="step-panel" id="step-4">
+        <div class="step-title">이메일 인증</div>
+        <div class="step-desc" id="verify-desc">이메일로 발송된 6자리 인증 코드를 입력해주세요.</div>
+
+        <div class="field">
+          <label>인증 코드</label>
+          <input class="input-field" id="verify-code" type="text"
+                 maxlength="6" placeholder="6자리 숫자 입력"
+                 oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                 onkeydown="if(event.key==='Enter') submitVerifyCode()"
+                 style="letter-spacing:8px;font-size:22px;font-weight:700;text-align:center">
+          <div class="field-msg" id="msg-verify"></div>
+        </div>
+
+        <div style="text-align:center;margin-top:4px">
+          <button onclick="resendCode()"
+                  style="background:none;border:none;color:var(--muted);font-size:12px;
+                         cursor:pointer;text-decoration:underline;font-family:inherit"
+                  id="btn-resend">
+            코드를 못 받으셨나요? 재발송
+          </button>
+          <div id="resend-timer" style="font-size:11px;color:var(--muted);margin-top:4px;display:none"></div>
+        </div>
+
+        <div class="btn-row" style="margin-top:24px">
+          <button class="btn btn-back" onclick="goStep(3)">← 이전</button>
+          <button class="btn btn-primary btn-full" id="btn-verify" onclick="submitVerifyCode()">인증 완료</button>
+        </div>
+      </div>
+
+      <div class="step-panel" id="step-done">
+        <div class="done-wrap">
+          <div class="done-icon">✓</div>
+          <div class="done-title">가입 완료!</div>
+          <p class="done-sub">환영합니다.<br>이제 주력 게임 등록을 시작할게요!</p>
+          <button class="btn btn-primary btn-full" onclick="navigateTo('/selectGame/')">
+            관심 게임 등록하러 가기
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="signup-login-link">
+      이미 계정이 있으신가요?
+      <button onclick="navigateTo('/login/')">로그인</button>
+    </div>
+
+  </div>
+
+  <script>
+
+  function navigateTo(url) {
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = url; }, 400);
+  }
+
+
+  function getCookie(name) {
+    let value = null;
+    document.cookie.split(';').forEach(c => {
+      const [k, v] = c.trim().split('=');
+      if (k === name) value = decodeURIComponent(v);
+    });
+    return value;
+  }
+
+
+  const TOTAL_STEPS = 4;
+  let currentStep = 1;
+
+
+  function goStep(next) {
+    if (next > currentStep && !validateStep(currentStep)) return;
+    const isBack = next < currentStep;
+
+    const cur = document.getElementById('step-' + currentStep);
+    if (cur) cur.classList.remove('active', 'back');
+
+    currentStep = next;
+
+    const nxt = document.getElementById('step-' + currentStep);
+    if (nxt) {
+      nxt.classList.toggle('back', isBack);
+      nxt.classList.add('active');
+    }
+    updateIndicator();
+  }
+
+  function updateIndicator() {
+    for (let i = 1; i <= TOTAL_STEPS; i++) {
+      const dot   = document.getElementById('dot-' + i);
+      const label = document.getElementById('label-' + i);
+      if (!dot) continue;
+      dot.classList.remove('active', 'done');
+      label.classList.remove('active');
+
+      if (i < currentStep) {
+        dot.classList.add('done'); dot.textContent = '✓';
+      } else if (i === currentStep) {
+        dot.classList.add('active'); dot.textContent = i;
+        label.classList.add('active');
+      } else {
+        dot.textContent = i;
+      }
+    }
+    for (let i = 1; i <= TOTAL_STEPS - 1; i++) {
+      const line = document.getElementById('line-' + i);
+      if (line) line.classList.toggle('done', i < currentStep);
+    }
+  }
+
+
+  function validateStep(step) {
+    if (step === 1) return validateStep1();
+    if (step === 2) return validateStep2();
+    if (step === 3) return validateStep3();
+    return true;
+  }
+
+  function validateStep1() {
+    const username    = document.getElementById('username').value.trim();
+    const email       = document.getElementById('email').value.trim();
+    const emailReg    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const usernameReg = /^[a-zA-Z0-9]+$/;   // 영문 + 숫자만
+    let ok = true;
+
+    if (!username) {
+      setMsg('msg-username', '사용자 이름을 입력해주세요.', 'error');
+      setFieldState('username', 'invalid'); ok = false;
+    } else if (username.length < 3) {
+      setMsg('msg-username', '3자 이상 입력해주세요.', 'error');
+      setFieldState('username', 'invalid'); ok = false;
+    } else if (!usernameReg.test(username)) {
+      setMsg('msg-username', '영문과 숫자만 사용할 수 있습니다. (한국어·특수문자 불가)', 'error');
+      setFieldState('username', 'invalid'); ok = false;
+    } else {
+      setMsg('msg-username', '✓ 사용 가능한 이름입니다.', 'success');
+      setFieldState('username', 'valid');
+    }
+
+    if (!email) {
+      setMsg('msg-email', '이메일을 입력해주세요.', 'error');
+      setFieldState('email', 'invalid'); ok = false;
+    } else if (!emailReg.test(email)) {
+      setMsg('msg-email', '올바른 이메일 형식이 아닙니다.', 'error');
+      setFieldState('email', 'invalid'); ok = false;
+    } else {
+      setMsg('msg-email', '✓ 올바른 이메일입니다.', 'success');
+      setFieldState('email', 'valid');
+    }
+    return ok;
+  }
+
+  function validateStep2() {
+    const pw  = document.getElementById('password').value;
+    const pw2 = document.getElementById('password2').value;
+    let ok = true;
+
+    if (pw.length < 8) {
+      setMsg('msg-password', '8자 이상 입력해주세요.', 'error');
+      setFieldState('password', 'invalid'); ok = false;
+    } else if (!/[^A-Za-z0-9]/.test(pw)) {
+      setMsg('msg-password', '특수문자를 1개 이상 포함해주세요.', 'error');
+      setFieldState('password', 'invalid'); ok = false;
+    }
+    if (!pw2) {
+      setMsg('msg-password2', '비밀번호를 한 번 더 입력해주세요.', 'error');
+      setFieldState('password2', 'invalid'); ok = false;
+    } else if (pw !== pw2) {
+      setMsg('msg-password2', '비밀번호가 일치하지 않습니다.', 'error');
+      setFieldState('password2', 'invalid'); ok = false;
+    }
+    return ok;
+  }
+
+  function validateStep3() {
+    const ok = document.getElementById('chk-terms').checked
+            && document.getElementById('chk-privacy').checked;
+    if (!ok) setMsg('msg-terms', '필수 약관에 동의해주세요.', 'error');
+    else     setMsg('msg-terms', '', '');
+    return ok;
+  }
+
+
+  // ── step 3 → 코드 발송 ──
+  async function sendVerifyCode() {
+    if (!validateStep3()) return;
+
+    const btn   = document.getElementById('btn-send-code');
+    const email = document.getElementById('email').value.trim();
+    btn.textContent = '발송 중...'; btn.disabled = true;
+
+    try {
+      const res  = await fetch('/api/auth/send-code/', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body   : JSON.stringify({ email }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        document.getElementById('verify-desc').textContent =
+          `${email} 로 인증 코드를 발송했습니다.`;
+        goStep(4);
+        startResendTimer(60);
+      } else {
+        setMsg('msg-terms', data.message, 'error');
+      }
+    } catch(e) {
+      setMsg('msg-terms', '네트워크 오류가 발생했습니다.', 'error');
+    } finally {
+      btn.textContent = '인증 코드 받기 →'; btn.disabled = false;
+    }
+  }
+
+  // ── step 4 → 코드 확인 + 회원가입 완료 ──
+  async function submitVerifyCode() {
+    const code = document.getElementById('verify-code').value.trim();
+    if (code.length !== 6) {
+      setMsg('msg-verify', '6자리 숫자를 입력해주세요.', 'error'); return;
+    }
+
+    const btn = document.getElementById('btn-verify');
+    btn.textContent = '확인 중...'; btn.disabled = true;
+
+    try {
+      const res  = await fetch('/api/auth/verify-code/', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body   : JSON.stringify({
+          code     : code,
+          username : document.getElementById('username').value.trim(),
+          password : document.getElementById('password').value,
+          marketing: document.getElementById('chk-marketing').checked,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showDone();
+      } else {
+        setMsg('msg-verify', data.message, 'error');
+      }
+    } catch(e) {
+      setMsg('msg-verify', '네트워크 오류가 발생했습니다.', 'error');
+    } finally {
+      btn.textContent = '인증 완료'; btn.disabled = false;
+    }
+  }
+
+  // ── 재발송 ──
+  let resendTimerInterval = null;
+  function startResendTimer(seconds) {
+    const timerEl  = document.getElementById('resend-timer');
+    const resendBtn = document.getElementById('btn-resend');
+    resendBtn.style.display = 'none';
+    timerEl.style.display   = 'block';
+    let remain = seconds;
+    clearInterval(resendTimerInterval);
+    resendTimerInterval = setInterval(() => {
+      timerEl.textContent = `${remain}초 후 재발송 가능`;
+      remain--;
+      if (remain < 0) {
+        clearInterval(resendTimerInterval);
+        timerEl.style.display   = 'none';
+        resendBtn.style.display = 'inline';
+      }
+    }, 1000);
+  }
+
+  async function resendCode() {
+    const email = document.getElementById('email').value.trim();
+    const btn   = document.getElementById('btn-resend');
+    btn.textContent = '발송 중...'; btn.disabled = true;
+    try {
+      const res  = await fetch('/api/auth/send-code/', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body   : JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMsg('msg-verify', '✓ 새 코드를 발송했습니다.', 'success');
+        document.getElementById('verify-code').value = '';
+        startResendTimer(60);
+      } else {
+        setMsg('msg-verify', data.message, 'error');
+      }
+    } catch(e) {
+      setMsg('msg-verify', '네트워크 오류가 발생했습니다.', 'error');
+    } finally {
+      btn.textContent = '코드를 못 받으셨나요? 재발송'; btn.disabled = false;
+    }
+  }
+
+
+  function showDone() {
+    const cur = document.getElementById('step-' + currentStep);
+    if (cur) cur.classList.remove('active');
+    document.getElementById('step-done').classList.add('active');
+
+    for (let i = 1; i <= TOTAL_STEPS; i++) {
+      const dot = document.getElementById('dot-' + i);
+      if (dot) { dot.classList.remove('active'); dot.classList.add('done'); dot.textContent = '✓'; }
+      const line = document.getElementById('line-' + i);
+      if (line) line.classList.add('done');
+    }
+  }
+
+
+  function checkStrength() {
+    const pw    = document.getElementById('password').value;
+    const bars  = [1,2,3].map(i => document.getElementById('pw-bar-' + i));
+    const level = document.getElementById('pw-level');
+    bars.forEach(b => b.className = 'pw-bar');
+    if (!pw) { level.textContent = ''; return; }
+
+    const hasLen     = pw.length >= 8;
+    const hasUpper   = /[A-Z]/.test(pw);
+    const hasNum     = /[0-9]/.test(pw);
+    const hasSpecial = /[^A-Za-z0-9]/.test(pw);
+
+    // 특수문자 없으면 무조건 약함
+    if (!hasSpecial) {
+      bars[0].classList.add('weak');
+      level.textContent = '약함'; level.style.color = '#ef4444';
+      setMsg('msg-password', '특수문자를 1개 이상 포함해주세요. (필수)', 'error');
+      setFieldState('password', 'invalid');
+      return;
+    }
+
+    let score = 0;
+    if (hasLen)             score++;
+    if (hasUpper && hasNum) score++;
+    if (hasSpecial)         score++;
+
+    const map = {
+      1: { cls:'weak',   label:'약함', color:'#ef4444', msg:'8자 이상 입력해주세요.',                state:'invalid' },
+      2: { cls:'medium', label:'보통', color:'#f59e0b', msg:'대문자와 숫자를 추가하면 더 안전해요.', state:'' },
+      3: { cls:'strong', label:'강함', color:'#10b981', msg:'✓ 안전한 비밀번호입니다.',              state:'valid'   },
+    };
+    const m = map[score] || map[1];
+    for (let i = 0; i < score; i++) bars[i].classList.add(m.cls);
+    level.textContent = m.label;
+    level.style.color = m.color;
+    setMsg('msg-password', m.msg, score === 1 ? 'error' : score === 3 ? 'success' : '');
+    setFieldState('password', m.state);
+  }
+
+  function checkConfirm() {
+    const pw  = document.getElementById('password').value;
+    const pw2 = document.getElementById('password2').value;
+    if (!pw2) return;
+    const match = pw === pw2;
+    setMsg('msg-password2', match ? '✓ 비밀번호가 일치합니다.' : '비밀번호가 일치하지 않습니다.', match ? 'success' : 'error');
+    setFieldState('password2', match ? 'valid' : 'invalid');
+  }
+
+  function toggleAll(el) {
+    document.querySelectorAll('.chk-single').forEach(c => { c.checked = el.checked; });
+  }
+  document.querySelectorAll('.chk-single').forEach(c => {
+    c.addEventListener('change', () => {
+      document.getElementById('chk-all').checked =
+        [...document.querySelectorAll('.chk-single')].every(c => c.checked);
+    });
+  });
+
+
+  function setMsg(id, text, type) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'field-msg' + (type ? ' ' + type : '');
+  }
+  function setFieldState(id, state) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('valid', 'invalid');
+    if (state) el.classList.add(state);
+  }
+  </script>
+
+</body>
+</html>

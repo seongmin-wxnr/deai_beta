@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="page-title">플레이어 정보 — Deai × VALORANT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+/* ═══════════════════════════════════════════════
+   VALORANT THEME  ·  검정 × 빨강 × 연빨강 × 금색
+   ═══════════════════════════════════════════════ */
+:root {
+  --bg:          #080808;
+  --bg2:         #0e0e0e;
+  --bg3:         #141414;
+  --bg4:         #1a1a1a;
+  --border:      #242424;
+  --border-red:  rgba(255,70,84,0.28);
+  --text-bright: #f0ece4;
+  --text:        #c8c0b4;
+  --text-sub:    #a09888;
+  --text-muted:  #605850;
+  /* VALORANT 레드 팔레트 */
+  --red:         #ff4654;
+  --red-mid:     #e8303e;
+  --red-dim:     rgba(255,70,84,0.13);
+  --red-glow:    rgba(255,70,84,0.24);
+  --red-light:   #ff8a93;
+  --red-pale:    #ffc4c8;
+  /* 골드 */
+  --gold:        #c89b3c;
+  --gold-bright: #f0e6d3;
+  --gold-dim:    rgba(200,155,60,0.14);
+  /* 기타 */
+  --blue:        #60a5fa;
+  --green:       #4ade80;
+  --font-ui:     'Rajdhani', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+}
+
+*            { box-sizing:border-box; margin:0; padding:0; }
+html, body   { background:var(--bg); color:var(--text); font-family:var(--font-ui); min-height:100vh; }
+
+/* 배경 격자 패턴 */
+body::before {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size:64px 64px; opacity:.2;
+}
+body::after {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,70,84,.06) 0%, transparent 60%);
+}
+
+/* ─── NAV ─── */
+.nav {
+  position:fixed; top:0; left:0; right:0; height:56px; z-index:1000;
+  display:flex; align-items:center; padding:0 28px;
+  background:rgba(8,8,8,0.94); backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.nav::after {
+  content:''; position:absolute; bottom:-1px; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent 0%, var(--red) 35%, var(--gold) 65%, transparent 100%);
+  opacity:.45;
+}
+.nav-logo { display:flex; align-items:center; gap:8px; text-decoration:none; flex-shrink:0; }
+.nav-logo-text { font-size:18px; font-weight:700; color:var(--red); letter-spacing:3px; }
+.nav-logo-sep  { color:var(--text-muted); font-size:13px; }
+.nav-logo-sub  { font-size:11px; font-weight:700; color:var(--red-light); letter-spacing:2.5px; text-transform:uppercase; }
+.nav-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-sub);
+  text-decoration: none;
+  font-family: var(--font-ui);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  transition: color 0.2s;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+.nav-back:hover { color:var(--red-light); }
+.nav-back svg   { width:15px; height:15px; }
+
+/* ─── LAYOUT ─── */
+.page-wrapper  { padding-top:72px; padding-bottom:48px; position:relative; z-index:1; }
+.userpage-wrap {
+  max-width:1180px; margin:0 auto; padding:0 20px;
+  display:flex; gap:18px; align-items:flex-start;
+}
+.sidebar      { width:272px; flex-shrink:0; display:flex; flex-direction:column; gap:10px; }
+.main-content { flex:1; min-width:0; display:flex; flex-direction:column; gap:10px; }
+
+/* ─── CARD ─── */
+.card {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:4px; position:relative; overflow:hidden;
+}
+.card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, var(--red) 0%, var(--gold) 55%, transparent 100%);
+  opacity:.5;
+}
+
+/* ─── SPINNER ─── */
+.spinner {
+  width:26px; height:26px; border-radius:50%;
+  border:2px solid var(--border-red); border-top-color:var(--red);
+  animation:spin .75s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.state-box {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:8px; padding:30px 16px; font-size:13px; font-weight:600;
+  color:var(--text-muted); text-align:center;
+}
+.state-box .icon { font-size:22px; }
+.state-box .msg  { color:var(--text-sub); }
+.state-box .sub  { font-size:11px; font-weight:500; }
+
+/* ─── ANIM ─── */
+.anim-1 { animation:slideUp .45s ease both; }
+.anim-2 { animation:slideUp .45s .07s ease both; }
+.anim-3 { animation:slideUp .45s .14s ease both; }
+.anim-4 { animation:slideUp .45s .21s ease both; }
+@keyframes slideUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+
+/* ─── PROFILE ─── */
+.profile-card { padding:22px 18px; text-align:center; }
+.profile-backdrop {
+  position:absolute; inset:0; z-index:0;
+  background:radial-gradient(ellipse 130% 60% at 50% 0%, rgba(255,70,84,.12) 0%, transparent 65%);
+}
+.profile-icon {
+  width:76px; height:76px; margin:0 auto; border-radius:4px;
+  border:2px solid var(--red); overflow:hidden;
+  box-shadow:0 0 24px var(--red-glow), 0 4px 16px rgba(0,0,0,.6);
+}
+.profile-icon img { width:100%; height:100%; object-fit:cover; }
+.profile-level-badge {
+  display:inline-block; margin-top:7px;
+  font-size:11px; font-weight:700; letter-spacing:1px; color:var(--red-light);
+  background:rgba(255,70,84,.1); border:1px solid rgba(255,70,84,.3);
+  border-radius:3px; padding:2px 10px;
+}
+.profile-gamename { font-size:20px; font-weight:700; letter-spacing:1px; color:var(--text-bright); }
+.profile-tagline  { font-size:12px; color:var(--text-muted); margin-top:2px; }
+.divider-val {
+  display:flex; align-items:center; gap:10px; margin:16px 0;
+  font-size:10px; font-weight:700; letter-spacing:2px; color:var(--text-muted);
+}
+.divider-val::before { content:''; flex:1; height:1px; background:linear-gradient(90deg, transparent, var(--red-dim)); }
+.divider-val::after  { content:''; flex:1; height:1px; background:linear-gradient(90deg, var(--red-dim), transparent); }
+
+/* ─── TIER CARD ─── */
+.tier-card-header {
+  font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+  color:var(--text-muted); padding:14px 16px 0;
+}
+.tier-main { display:flex; align-items:center; gap:14px; padding:12px 16px; }
+.tier-emblem { width:68px; height:68px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.tier-emblem img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 2px 12px var(--red-glow)); }
+.tier-info { flex:1; }
+.tier-name     { font-size:18px; font-weight:700; letter-spacing:2px; line-height:1; color:var(--red); }
+.tier-division { font-size:15px; font-weight:600; color:var(--text-bright); margin-top:3px; }
+.tier-lp       { font-size:17px; font-weight:700; color:var(--gold); margin-top:4px; }
+.tier-lp span  { font-size:11px; font-weight:600; color:var(--text-muted); }
+.tier-stats-row { display:flex; border-top:1px solid var(--border); }
+.tier-stat { flex:1; text-align:center; padding:9px 4px; border-right:1px solid var(--border); }
+.tier-stat:last-child { border-right:none; }
+.tier-stat .val { font-size:17px; font-weight:700; color:var(--text-bright); }
+.tier-stat .lbl { font-size:11px; color:var(--text-muted); font-weight:600; letter-spacing:.5px; margin-top:2px; }
+
+/* ─── MASTERY ─── */
+.mastery-item { display:flex; align-items:center; gap:10px; padding:9px 16px; border-top:1px solid var(--border); transition:background .14s; }
+.mastery-item:hover { background:var(--bg3); }
+.mastery-rank      { font-size:15px; font-weight:700; color:var(--text-muted); width:18px; text-align:center; flex-shrink:0; }
+.mastery-rank.top1 { color:var(--gold); }
+.mastery-rank.top2 { color:#b0bec5; }
+.mastery-rank.top3 { color:#cd7f32; }
+.mastery-champ-icon { width:36px; height:36px; border-radius:4px; overflow:hidden; flex-shrink:0; border:1px solid var(--border); }
+.mastery-champ-icon img { width:100%; height:100%; object-fit:cover; }
+.mastery-info      { flex:1; min-width:0; }
+.mastery-champ-name { font-size:13px; font-weight:700; color:var(--text-bright); }
+.mastery-pts        { font-size:11px; color:var(--text-muted); margin-top:1px; }
+.mastery-lvl-badge  { font-size:10px; font-weight:700; padding:2px 7px; border-radius:3px; letter-spacing:.5px; }
+
+/* ─── STATS BAR ─── */
+.stats-bar { display:flex; }
+.stats-bar-item { flex:1; text-align:center; padding:14px 8px; border-right:1px solid var(--border); }
+.stats-bar-item:last-child { border-right:none; }
+.stat-value { font-size:20px; font-weight:700; color:var(--text-bright); letter-spacing:.5px; }
+.stat-label { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); margin-top:2px; }
+
+/* ─── TABS ─── */
+.tab-bar { display:flex; border-bottom:1px solid var(--border); padding:0 16px; gap:2px; }
+.tab-btn {
+  font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+  padding:12px 14px; background:none; border:none; color:var(--text-muted);
+  cursor:pointer; border-bottom:2px solid transparent; transition:all .18s; margin-bottom:-1px;
+}
+.tab-btn:hover { color:var(--red-light); }
+.tab-btn.active { color:var(--red); border-bottom-color:var(--red); }
+.tab-content        { display:none; }
+.tab-content.active { display:block; }
+
+/* ─── MATCH CARD ─── */
+.match-card {
+  display:flex; align-items:center; gap:12px; padding:11px 16px;
+  border-bottom:1px solid var(--border); transition:background .14s;
+  position:relative; cursor:pointer;
+}
+.match-card:last-child { border-bottom:none; }
+.match-card:hover      { background:var(--bg3); }
+.match-card::after {
+  content:''; position:absolute; left:0; top:8px; bottom:8px;
+  width:3px; border-radius:0 2px 2px 0;
+}
+.match-card.win::after  { background:var(--red); box-shadow:0 0 8px var(--red-glow); }
+.match-card.lose::after { background:var(--bg4); }
+
+.match-result-col { width:62px; flex-shrink:0; text-align:center; display:flex; flex-direction:column; gap:3px; }
+.match-result-txt { font-size:14px; font-weight:700; letter-spacing:1.5px; }
+.match-card.win  .match-result-txt { color:var(--red); }
+.match-card.lose .match-result-txt { color:var(--text-muted); }
+.match-queue    { font-size:10px; color:var(--text-muted); font-weight:600; }
+.match-duration { font-size:10px; color:var(--text-muted); }
+
+.match-main-col { display:flex; align-items:center; gap:10px; flex:1; min-width:0; }
+.match-champ-icon { width:46px; height:46px; border-radius:4px; flex-shrink:0; overflow:hidden; border:1px solid var(--border); background:var(--bg3); position:relative; }
+.match-champ-icon img { width:100%; height:100%; object-fit:cover; }
+.match-champ-level {
+  position:absolute; bottom:0; right:0; font-size:10px; font-weight:700;
+  background:rgba(0,0,0,.75); color:var(--text-bright); padding:1px 4px; border-radius:2px 0 0 0;
+}
+.match-spells    { display:flex; flex-direction:column; gap:3px; }
+.match-spell     { width:20px; height:20px; border-radius:3px; overflow:hidden; border:1px solid var(--border); background:var(--bg3); }
+.match-spell img { width:100%; height:100%; object-fit:cover; }
+.match-kda-col   { flex:1; min-width:0; }
+.match-kda       { display:flex; align-items:center; gap:2px; font-size:15px; font-weight:700; color:var(--text-bright); }
+.match-kda .sep  { color:var(--text-muted); margin:0 2px; }
+.match-kda-ratio { font-size:11px; font-weight:600; color:var(--text-muted); margin-top:2px; }
+.kda-perfect     { color:var(--gold) !important; }
+.kda-great       { color:var(--red-light) !important; }
+.kda-good        { color:#facc15 !important; }
+
+.match-items-col  { display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+.match-items-row  { display:flex; gap:2px; }
+.match-item       { width:24px; height:24px; border-radius:3px; overflow:hidden; background:var(--bg3); border:1px solid var(--border); }
+.match-item img   { width:100%; height:100%; object-fit:cover; }
+.match-item.empty { opacity:.3; }
+.match-cs-row     { font-size:11px; color:var(--text-muted); text-align:right; }
+
+/* ─── CHAMP STATS ─── */
+.champ-stats-table { width:100%; border-collapse:collapse; }
+.champ-stats-table th {
+  font-size:10px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
+  color:var(--text-muted); padding:9px 12px; text-align:left;
+  border-bottom:1px solid var(--border); background:var(--bg3);
+}
+.champ-stats-table td { font-size:13px; color:var(--text-bright); padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+.champ-stats-table tr:last-child td { border-bottom:none; }
+.champ-stats-table tr:hover td { background:var(--bg3); }
+.champ-icon-sm {
+  display:inline-block; width:30px; height:30px; border-radius:4px;
+  overflow:hidden; vertical-align:middle; margin-right:8px;
+  background:var(--bg3); border:1px solid var(--border);
+}
+.wr-bar-wrap { display:flex; align-items:center; gap:8px; }
+.wr-bar       { flex:1; height:4px; background:var(--bg4); border-radius:2px; overflow:hidden; }
+.wr-bar-fill  { height:100%; background:var(--text-muted); border-radius:2px; }
+.wr-bar-fill.high { background:var(--red); }
+.wr-bar-fill.low  { background:var(--bg4); }
+
+/* ─── BUTTON ─── */
+.btn { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:8px 18px; border-radius:3px; cursor:pointer; border:none; transition:all .18s; text-decoration:none; }
+.btn-red     { background:var(--red); color:#fff; }
+.btn-red:hover { background:var(--red-mid); }
+.btn-outline  { background:transparent; color:var(--text-sub); border:1px solid var(--border); }
+.btn-outline:hover { border-color:var(--red); color:var(--red-light); }
+
+/* ─── TOAST ─── */
+.toast {
+  display:none; position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+  background:var(--bg3); border:1px solid var(--border-red); color:var(--red-light);
+  font-size:13px; font-weight:600; padding:12px 24px; border-radius:4px; z-index:9999;
+  white-space:nowrap; box-shadow:0 4px 20px rgba(255,70,84,.2);
+}
+
+/* ─── MODAL ─── */
+#match-modal-overlay { animation:fadeIn .15s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.modal-player-row { transition:background .1s; border-bottom:1px solid #1e1e1e; }
+.modal-player-row:hover { background:#181818; }
+.modal-player-row.me { background:rgba(255,70,84,.08); border-left:2px solid var(--red); }
+.modal-player-row.me:hover { background:rgba(255,70,84,.14); }
+.modal-tier-badge { font-size:10px; font-weight:700; letter-spacing:.5px; padding:1px 5px; border-radius:3px; }
+.modal-champ-icon { width:36px; height:36px; border-radius:5px; object-fit:cover; flex-shrink:0; border:1px solid #2a2a2a; }
+.modal-item-icon  { width:26px; height:26px; border-radius:4px; object-fit:cover; }
+.modal-item-slot  { width:26px; height:26px; border-radius:4px; background:rgba(255,255,255,.03); border:1px solid #2a2a2a; display:inline-block; }
+
+/* ─── FILTER BTN ─── */
+.champ-filter-btn {
+  font-size:11px; font-weight:700; letter-spacing:1.5px; padding:5px 14px;
+  border-radius:3px; border:1px solid var(--border); background:transparent;
+  color:var(--text-muted); cursor:pointer; transition:all .18s;
+}
+.champ-filter-btn:hover { border-color:var(--red); color:var(--red-light); }
+.champ-filter-btn.active { background:var(--red-dim); border-color:var(--red); color:var(--red); }
+
+@media (max-width:900px) {
+  .userpage-wrap { flex-direction:column; }
+  .sidebar { width:100%; }
+  .page-wrapper { padding-top:64px; padding-bottom:32px; }
+  .userpage-wrap { padding:0 12px; gap:10px; }
+  .nav { padding:0 14px; }
+  .nav-logo-sub { display:none; }
+
+  /* 검색창 축소 */
+  .nav > div[style*="max-width:440px"] {
+    margin:0 8px !important;
+    max-width:none !important;
+    flex:1 !important;
+  }
+
+  /* 매치 카드 */
+  .match-card { padding:9px 12px; gap:8px; }
+  .match-result-col { width:50px; }
+  .match-result-txt { font-size:13px; }
+  .match-champ-icon { width:38px; height:38px; }
+  .match-spell { width:18px; height:18px; }
+  .match-kda { font-size:14px; }
+  .match-kda-ratio { font-size:10px; }
+  .match-items-col { display:none; }
+
+  /* 통계바 */
+  .stats-bar { flex-wrap:wrap; }
+  .stats-bar-item { flex:1 1 50%; border-right:none; border-bottom:1px solid var(--border); }
+  .stats-bar-item:nth-child(odd)  { border-right:1px solid var(--border); }
+  .stats-bar-item:last-child,
+  .stats-bar-item:nth-last-child(2):nth-child(odd) { border-bottom:none; }
+
+  /* 탭 */
+  .tab-btn { padding:10px 10px; font-size:10px; letter-spacing:1px; }
+
+  /* 챔피언 통계 테이블 */
+  .champ-stats-table th { padding:7px 8px; font-size:9px; }
+  .champ-stats-table td { padding:8px 8px; font-size:12px; }
+  .champ-icon-sm { width:26px; height:26px; margin-right:5px; }
+}
+
+@media (max-width:600px) {
+  .page-wrapper { padding-top:56px; padding-bottom:24px; }
+  .userpage-wrap { padding:0 8px; }
+  .nav { padding:0 10px; }
+
+  /* 매치 카드 더 축소 */
+  .match-card { padding:8px 10px; gap:6px; }
+  .match-result-col { width:44px; }
+  .match-result-txt { font-size:12px; }
+  .match-queue, .match-duration { font-size:9px; }
+  .match-champ-icon { width:34px; height:34px; }
+  .match-spell { width:16px; height:16px; }
+  .match-kda { font-size:13px; }
+  .match-spells { gap:2px; }
+
+  /* 모달 */
+  #match-modal { font-size:11px; }
+
+  /* 탭 */
+  .tab-bar { padding:0 8px; }
+  .tab-btn { padding:9px 8px; font-size:9px; }
+}
+
+/* ─── iOS Safari safe-area ─── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .page-wrapper {
+    padding-bottom: max(32px, env(safe-area-inset-bottom));
+  }
+  .nav {
+    padding-left:  max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .tab-btn       { min-height: 44px; }
+  .match-card    { cursor: default; }
+  .btn, .btn-outline { min-height: 44px; }
+  .champ-filter-btn  { min-height: 40px; }
+}
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="/Deai_main/" style="flex-shrink:0;">
+    <span class="nav-logo-text">DEAI</span>
+    <span class="nav-logo-sep">×</span>
+    <span class="nav-logo-sub">VALORANT</span>
+  </a>
+
+  <!-- 네브바 인라인 검색 -->
+  <div style="display:flex;align-items:center;flex:1;max-width:440px;margin:0 28px;">
+    <div id="nav-search-box"
+         style="display:flex;align-items:center;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:4px 0 0 4px;flex:1;overflow:hidden;transition:border-color 0.2s;"
+         onfocusin="this.style.borderColor='var(--red)'"
+         onfocusout="this.style.borderColor='var(--border)'">
+      <input id="nav-name-input" type="text" placeholder="플레이어 이름" autocomplete="off" spellcheck="false"
+             style="background:none;border:none;outline:none;padding:8px 10px;font-family:var(--font-ui);font-size:13px;color:var(--text-bright);flex:1;min-width:0;"
+             onkeydown="if(event.key==='Enter')navSearch()"/>
+      <span style="color:var(--text-muted);font-size:14px;padding:0 2px;flex-shrink:0;">#</span>
+      <input id="nav-tag-input" type="text" placeholder="KR1" maxlength="8" autocomplete="off" spellcheck="false"
+             style="background:none;border:none;outline:none;padding:8px 8px;font-family:var(--font-ui);font-size:13px;color:var(--text-bright);width:68px;flex-shrink:0;"
+             onkeydown="if(event.key==='Enter')navSearch()"/>
+    </div>
+    <select id="nav-region-select"
+            style="background:#0a0a0a;border:1px solid var(--border);border-left:none;border-radius:0;outline:none;padding:8px 4px;font-family:var(--font-ui);font-size:12px;color:var(--text-sub);cursor:pointer;height:38px;flex-shrink:0;">
+      <option value="kr">KR</option>
+      <option value="na1">NA</option>
+      <option value="euw1">EUW</option>
+      <option value="eun1">EUNE</option>
+      <option value="jp1">JP</option>
+    </select>
+    <button onclick="navSearch()"
+            style="background:var(--red);border:none;border-radius:0 4px 4px 0;width:42px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .18s;"
+            onmouseover="this.style.background='var(--red-mid)'"
+            onmouseout="this.style.background='var(--red)'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" style="width:15px;height:15px;">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+    </button>
+  </div>
+
+  <button class="nav-back" onclick="navigateTo('/RiotSearch/')" style="flex-shrink:0;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+    </svg>
+    검색으로
+  </button>
+</nav>
+
+<div class="page-wrapper">
+  <div class="userpage-wrap">
+    <aside class="sidebar">
+
+      <!-- 프로필 카드 -->
+      <div class="card profile-card anim-1" id="profile-card">
+        <div class="state-box"><div class="spinner"></div><span class="msg">프로필 로딩 중...</span></div>
+      </div>
+
+      <!-- 경쟁전 랭크 -->
+      <div class="card tier-card anim-2" id="tier-card-comp">
+        <div class="tier-card-header">경쟁전 랭크</div>
+        <div class="state-box" style="padding:24px;"><div class="spinner"></div></div>
+      </div>
+      <div class="card anim-4" id="top-agents-card">
+        <div class="tier-card-header">자주 쓰는 에이전트 TOP 5</div>
+        <div class="state-box" style="padding:24px;"><div class="spinner"></div></div>
+      </div>
+
+    </aside>
+
+    <!-- ═══ 오른쪽 메인 ═══ -->
+    <main class="main-content">
+
+      <!-- 통계 요약 바 (VAL: 게임수 / 승률 / KDA / ACS / HS%) -->
+      <div class="card anim-2" id="stats-bar-wrap" style="display:none;">
+        <div class="stats-bar">
+          <div class="stats-bar-item">
+            <div class="stat-value" id="stat-games">—</div>
+            <div class="stat-label">최근 게임</div>
+          </div>
+          <div class="stats-bar-item">
+            <div class="stat-value" id="stat-wr" style="color:var(--red)">—</div>
+            <div class="stat-label">승률</div>
+          </div>
+          <div class="stats-bar-item">
+            <div class="stat-value" id="stat-kda">—</div>
+            <div class="stat-label">평균 KDA</div>
+          </div>
+          <div class="stats-bar-item">
+            <div class="stat-value" id="stat-acs">—</div>
+            <div class="stat-label">평균 ACS</div>
+          </div>
+          <div class="stats-bar-item">
+            <div class="stat-value" id="stat-hs" style="color:var(--red-light)">—</div>
+            <div class="stat-label">헤드샷 %</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 탭 카드 -->
+      <div class="card anim-3">
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchTab('matches',this)">전적</button>
+          <button class="tab-btn" onclick="switchTab('agents',this)">에이전트 통계</button>
+        </div>
+
+        <!-- 전적 탭 -->
+        <div class="tab-content active" id="tab-matches">
+          <div class="match-list" id="match-list">
+            <div class="state-box"><div class="spinner"></div><span class="msg">전적 불러오는 중...</span></div>
+          </div>
+        </div>
+        <div style="text-align:center;padding:16px;display:none;" id="load-more-wrap">
+          <button class="btn btn-outline" onclick="loadMoreMatches()" id="load-more-btn">더 보기</button>
+        </div>
+        <div class="tab-content" id="tab-agents" style="padding:16px;">
+          <div id="agent-stats-wrap">
+            <div class="state-box"><div class="spinner"></div><span class="msg">집계 중...</span></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let S = {
+  puuid    : '',
+  region   : 'kr',
+  gameName : '',
+  tagLine  : '',
+  matchData : [],   
+  agentData : {},  
+};
+
+function parseParams() {
+  const p = new URLSearchParams(location.search);
+  S.gameName = p.get('name')   || '';
+  S.tagLine  = p.get('tag')    || '';
+  S.region   = p.get('region') || 'kr';
+  S.puuid    = p.get('puuid')  || '';
+  document.title = `${S.gameName} #${S.tagLine} — Deai × VALORANT`;
+  const rsel = document.getElementById('nav-region-select');
+  if (rsel) rsel.value = S.region;
+}
+
+async function valAPI(path) {
+  const res  = await fetch(path);
+  const data = await res.json();
+  return data;
+}
+
+function renderProfile() {
+  document.getElementById('profile-card').innerHTML = `
+    <div class="profile-backdrop"></div>
+    <div style="position:relative;z-index:1;text-align:center;">
+      <!-- VAL 로고 아이콘 (에이전트 이미지 없으므로 VAL 엠블럼) -->
+      <div class="profile-icon" style="margin:0 auto;display:flex;align-items:center;justify-content:center;background:var(--bg3);">
+        <svg viewBox="0 0 40 40" fill="none" style="width:48px;height:48px;">
+          <polygon points="20,2 36,11 36,29 20,38 4,29 4,11"
+                   fill="none" stroke="var(--red)" stroke-width="1.5" opacity="0.7"/>
+          <polygon points="20,8 30,14 30,26 20,32 10,26 10,14"
+                   fill="rgba(255,70,84,0.08)" stroke="var(--red)" stroke-width="1" opacity="0.5"/>
+          <text x="20" y="25" text-anchor="middle"
+                font-family="serif" font-size="14" font-weight="bold" fill="var(--red)">V</text>
+        </svg>
+      </div>
+      <div class="profile-level-badge">VALORANT</div>
+    </div>
+    <div style="position:relative;z-index:1;text-align:center;margin-top:14px;">
+      <div class="profile-gamename">${esc(S.gameName)}</div>
+      <div class="profile-tagline">#${esc(S.tagLine)}</div>
+      <div style="margin-top:8px;">
+        <span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:1.5px;
+                     color:var(--red-light);background:var(--red-dim);
+                     border:1px solid var(--border-red);border-radius:3px;padding:3px 10px;">
+          ${S.region.toUpperCase()}
+        </span>
+      </div>
+    </div>
+    <div class="divider-val" style="position:relative;z-index:1;"><span>PLAYER</span></div>
+  `;
+}
+
+async function loadRank() {
+  const data = await valAPI(
+    `/api/val/rank/?puuid=${encodeURIComponent(S.puuid)}&region=${S.region}`
+  );
+  renderRankCard(data);
+}
+function valTierIconUrl(tierNum) {
+  // 티어 이미지는 valorant-api.com 에서 제공
+  // /v1/competitivetiers 에서 uuid 조회 필요하나 개발 키로는 접근 어려움
+  // → CommunityDragon VAL 티어 이미지 사용
+  const TIER_ICONS = {
+    0 : '', 1 : '', 2 : '',
+    3 : 'iron',       4 : 'iron',       5 : 'iron',
+    6 : 'bronze',     7 : 'bronze',     8 : 'bronze',
+    9 : 'silver',     10: 'silver',     11: 'silver',
+    12: 'gold',       13: 'gold',       14: 'gold',
+    15: 'platinum',   16: 'platinum',   17: 'platinum',
+    18: 'diamond',    19: 'diamond',    20: 'diamond',
+    21: 'ascendant',  22: 'ascendant',  23: 'ascendant',
+    24: 'immortal',   25: 'immortal',   26: 'immortal',
+    27: 'radiant',
+  };
+  const TIER_DIVISION = {
+    3:1, 4:2, 5:3, 6:1, 7:2, 8:3, 9:1, 10:2, 11:3,
+    12:1,13:2,14:3,15:1,16:2,17:3,18:1,19:2,20:3,
+    21:1,22:2,23:3,24:1,25:2,26:3,
+  };
+  const name = TIER_ICONS[tierNum];
+  if (!name) return '';
+  const div  = TIER_DIVISION[tierNum] || '';
+  return `https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/${tierNum}/smallicon.png`;
+}
+
+function renderRankCard(data) {
+  const el = document.getElementById('tier-card-comp');
+  el.innerHTML = '<div class="tier-card-header">경쟁전 랭크</div>';
+
+  if (!data.success || !data.ranked) {
+    el.innerHTML += `
+      <div class="state-box" style="padding:20px;">
+        <span class="icon">🎯</span>
+        <span class="msg">배치 미완료</span>
+        <span class="sub">경쟁전 배치를 완료해주세요</span>
+      </div>`;
+    return;
+  }
+
+  const wr      = data.matches > 0 ? Math.round(data.wins / data.matches * 100) : 0;
+  const wrColor = wr >= 55 ? 'var(--red)' : wr <= 45 ? 'var(--text-muted)' : 'var(--text-bright)';
+  const iconUrl = valTierIconUrl(data.tier);
+
+  el.innerHTML += `
+    <div class="tier-main">
+      <div class="tier-emblem">
+        ${iconUrl
+          ? `<img src="${iconUrl}" alt="${data.tierName}"
+                  onerror="this.style.opacity='0.3'"
+                  style="width:64px;height:64px;object-fit:contain;filter:drop-shadow(0 2px 12px var(--red-glow));"/>`
+          : `<div style="width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:28px;">🎯</div>`
+        }
+      </div>
+      <div class="tier-info">
+        <div class="tier-name">${data.tierName}</div>
+        <div class="tier-division">${data.tierDivision}</div>
+        <div class="tier-lp">${data.rr} <span>RR</span></div>
+      </div>
+    </div>
+    <div class="tier-stats-row">
+      <div class="tier-stat">
+        <div class="val">${data.matches}</div>
+        <div class="lbl">게임</div>
+      </div>
+      <div class="tier-stat">
+        <div class="val" style="color:${wrColor}">${wr}%</div>
+        <div class="lbl">승률</div>
+      </div>
+      <div class="tier-stat">
+        <div class="val" style="color:var(--red-light)">${data.wins}W</div>
+        <div class="lbl">승리</div>
+      </div>
+      <div class="tier-stat">
+        <div class="val" style="color:var(--text-muted)">${data.losses}L</div>
+        <div class="lbl">패배</div>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:10px;color:var(--text-muted);padding:8px 0;border-top:1px solid var(--border);">
+      최근 ${data.matches}경기 기준 · RR 수치는 개발 키 제한으로 미제공
+    </div>
+  `;
+}
+
+const PAGE_SIZE = 10;
+
+async function initMatches() {
+  const ml = document.getElementById('match-list');
+  const idsData = await valAPI(
+    `/api/val/matches/?puuid=${encodeURIComponent(S.puuid)}&region=${S.region}`
+  );
+
+  if (!idsData.success || !idsData.matchIds?.length) {
+    ml.innerHTML = '<div class="state-box"><span class="icon">🎮</span><span class="msg">최근 게임 없음</span></div>';
+    return;
+  }
+
+  ml.innerHTML = '';
+  const batch = idsData.matchIds.slice(0, PAGE_SIZE);
+
+  // 병렬로 매치 상세 조회
+  const details = await Promise.allSettled(
+    batch.map(id => valAPI(`/api/val/match/${encodeURIComponent(id)}/?region=${S.region}`))
+  );
+
+  details.forEach(r => {
+    if (r.status === 'fulfilled' && r.value.success) {
+      const card = buildMatchCard(r.value.match);
+      if (card) {
+        ml.appendChild(card);
+        S.matchData.push(r.value.match);
+        accumAgent(r.value.match);
+      }
+    }
+  });
+
+  // 더보기 버튼
+  S._allMatchIds  = idsData.matchIds;
+  S._loadedCount  = PAGE_SIZE;
+  if (idsData.matchIds.length > PAGE_SIZE) {
+    document.getElementById('load-more-wrap').style.display = 'block';
+  }
+
+  updateStatsBar();
+  renderAgentStats();
+
+  // Top Agents 사이드바 업데이트
+  renderTopAgents();
+}
+
+async function loadMoreMatches() {
+  const btn     = document.getElementById('load-more-btn');
+  btn.disabled  = true;
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;"></div>';
+
+  const ml    = document.getElementById('match-list');
+  const start = S._loadedCount;
+  const batch = (S._allMatchIds || []).slice(start, start + PAGE_SIZE);
+
+  if (!batch.length) {
+    document.getElementById('load-more-wrap').style.display = 'none';
+    return;
+  }
+
+  const details = await Promise.allSettled(
+    batch.map(id => valAPI(`/api/val/match/${encodeURIComponent(id)}/?region=${S.region}`))
+  );
+
+  details.forEach(r => {
+    if (r.status === 'fulfilled' && r.value.success) {
+      const card = buildMatchCard(r.value.match);
+      if (card) {
+        ml.appendChild(card);
+        S.matchData.push(r.value.match);
+        accumAgent(r.value.match);
+      }
+    }
+  });
+
+  S._loadedCount += PAGE_SIZE;
+  updateStatsBar();
+  renderAgentStats();
+  renderTopAgents();
+
+  if (S._loadedCount >= (S._allMatchIds || []).length) {
+    document.getElementById('load-more-wrap').style.display = 'none';
+  } else {
+    btn.disabled  = false;
+    btn.innerHTML = '더 보기';
+  }
+}
+
+function buildMatchCard(match) {
+  if (!match?.matchInfo) return null;
+
+  const info    = match.matchInfo;
+  const players = match.players || [];
+  const teams   = match.teams   || [];
+
+  // 내 플레이어
+  const me = players.find(p => p.puuid === S.puuid);
+  if (!me) return null;
+
+  // 내 팀 승패
+  const myTeam = teams.find(t => t.teamId === me.teamId);
+  const isWin  = myTeam?.won ?? false;
+
+  const kills   = me.stats.kills;
+  const deaths  = me.stats.deaths;
+  const assists = me.stats.assists;
+  const acs     = me.acs;
+  const kda     = me.kda;
+  const hsPct   = me.damage.hsPercent;
+
+  const kdaClass = kda === 'Perfect' ? 'kda-perfect'
+                 : parseFloat(kda) >= 4 ? 'kda-great'
+                 : parseFloat(kda) >= 2.5 ? 'kda-good' : '';
+
+  // 경기 시간 (밀리초 → 분:초)
+  const durSec = Math.round((info.gameLengthMillis || 0) / 1000);
+  const durStr = `${Math.floor(durSec / 60)}:${String(durSec % 60).padStart(2, '0')}`;
+  const timeAgo = timeSince(Math.round((info.gameStartMillis || 0) / 1000));
+
+  // 라운드 스코어
+  const myRoundsWon  = myTeam?.roundsWon ?? 0;
+  const myRoundsLost = (myTeam?.roundsPlayed ?? 0) - myRoundsWon;
+  const enemyTeam    = teams.find(t => t.teamId !== me.teamId);
+  const enRoundsWon  = enemyTeam?.roundsWon ?? 0;
+  const roundScore   = `${myRoundsWon} - ${enRoundsWon}`;
+
+  const div = document.createElement('div');
+  div.className = `match-card ${isWin ? 'win' : 'lose'}`;
+  div.addEventListener('click', () => openMatchModal(match));
+  div.innerHTML = `
+    <!-- 결과 -->
+    <div class="match-result-col">
+      <span class="match-result-txt">${isWin ? 'WIN' : 'LOSE'}</span>
+      <span class="match-queue">${esc(info.queueName || info.queueId)}</span>
+      <span class="match-duration">${durStr}</span>
+      <span class="match-duration" style="color:var(--text-muted);font-size:10px;">${timeAgo}</span>
+    </div>
+
+    <!-- 에이전트 + 이름 -->
+    <div class="match-main-col">
+      <div class="match-champ-icon">
+        ${me.agentIconUrl
+          ? `<img src="${me.agentIconUrl}" loading="lazy"
+                  onerror="this.style.background='var(--bg4)'"
+                  alt="${esc(me.agentName)}"/>`
+          : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--bg3);">?</div>`
+        }
+      </div>
+      <div class="match-kda-col">
+        <div style="font-size:13px;font-weight:700;color:var(--text-bright);margin-bottom:3px;">
+          ${esc(me.agentName)}
+        </div>
+        <!-- K / D / A -->
+        <div class="match-kda">
+          <span>${kills}</span><span class="sep">/</span>
+          <span style="color:var(--red)">${deaths}</span><span class="sep">/</span>
+          <span>${assists}</span>
+        </div>
+        <div class="match-kda-ratio ${kdaClass}">
+          ${kda === 'Perfect' ? '⚡ Perfect KDA' : `${kda} : 1 KDA`}
+        </div>
+      </div>
+    </div>
+
+    <!-- VAL 스탯 (ACS / HS% / 라운드) -->
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">
+      <div style="display:flex;gap:12px;">
+        <div style="text-align:center;">
+          <div style="font-size:15px;font-weight:700;color:var(--text-bright);">${acs}</div>
+          <div style="font-size:10px;color:var(--text-muted);letter-spacing:.5px;">ACS</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:15px;font-weight:700;color:var(--red-light);">${hsPct}%</div>
+          <div style="font-size:10px;color:var(--text-muted);letter-spacing:.5px;">HS</div>
+        </div>
+      </div>
+      <!-- 라운드 스코어 -->
+      <div style="font-size:12px;font-weight:700;
+                  color:${isWin ? 'var(--red-light)' : 'var(--text-muted)'};
+                  letter-spacing:1px;">
+        ${roundScore}
+      </div>
+      <!-- 맵 이름 -->
+      <div style="font-size:11px;color:var(--text-muted);">
+        ${esc(info.mapName || '')}
+      </div>
+    </div>
+  `;
+  return div;
+}
+
+function updateStatsBar() {
+  const all   = S.matchData;
+  const total = all.length;
+  if (!total) return;
+
+  let wins = 0, sumK = 0, sumD = 0, sumA = 0, sumAcs = 0, sumHs = 0;
+
+  all.forEach(m => {
+    const me     = m.players?.find(p => p.puuid === S.puuid);
+    const myTeam = m.teams?.find(t => t.teamId === me?.teamId);
+    if (!me) return;
+    if (myTeam?.won) wins++;
+    sumK   += me.stats.kills;
+    sumD   += me.stats.deaths;
+    sumA   += me.stats.assists;
+    sumAcs += me.acs;
+    sumHs  += me.damage.hsPercent;
+  });
+
+  const wr = Math.round(wins / total * 100);
+
+  document.getElementById('stat-games').textContent = `${wins}W ${total - wins}L`;
+  document.getElementById('stat-wr').textContent    = `${wr}%`;
+  document.getElementById('stat-wr').style.color    = wr >= 55 ? 'var(--red)' : wr <= 45 ? 'var(--text-muted)' : 'var(--text-bright)';
+  document.getElementById('stat-kda').textContent   =
+    `${(sumK/total).toFixed(1)} / ${(sumD/total).toFixed(1)} / ${(sumA/total).toFixed(1)}`;
+  document.getElementById('stat-acs').textContent   = Math.round(sumAcs / total);
+  document.getElementById('stat-hs').textContent    = `${(sumHs / total).toFixed(1)}%`;
+
+  document.getElementById('stats-bar-wrap').style.display = 'block';
+}
+
+function accumAgent(match) {
+  const me = match.players?.find(p => p.puuid === S.puuid);
+  if (!me) return;
+  const myTeam = match.teams?.find(t => t.teamId === me.teamId);
+
+  const name = me.agentName || me.characterId || '?';
+  if (!S.agentData[name]) {
+    S.agentData[name] = {
+      games:0, wins:0,
+      kills:0, deaths:0, assists:0,
+      sumAcs:0, sumHs:0,
+      iconUrl: me.agentIconUrl || '',
+    };
+  }
+  const d = S.agentData[name];
+  d.games++;
+  if (myTeam?.won) d.wins++;
+  d.kills   += me.stats.kills;
+  d.deaths  += me.stats.deaths;
+  d.assists += me.stats.assists;
+  d.sumAcs  += me.acs;
+  d.sumHs   += me.damage.hsPercent;
+}
+
+function renderAgentStats() {
+  const wrap   = document.getElementById('agent-stats-wrap');
+  const sorted = Object.entries(S.agentData).sort((a, b) => b[1].games - a[1].games);
+
+  if (!sorted.length) {
+    wrap.innerHTML = '<div class="state-box"><span class="msg">데이터 없음</span></div>';
+    return;
+  }
+
+  const rows = sorted.map(([name, d]) => {
+    const wr      = Math.round(d.wins / d.games * 100);
+    const kda     = d.deaths === 0 ? 'Perfect' : ((d.kills + d.assists) / d.deaths).toFixed(2);
+    const avgAcs  = Math.round(d.sumAcs / d.games);
+    const avgHs   = (d.sumHs / d.games).toFixed(1);
+    const wrColor = wr >= 60 ? 'var(--red)' : wr <= 40 ? 'var(--text-muted)' : 'var(--text-bright)';
+    const wrClass = wr >= 60 ? 'high' : wr <= 40 ? 'low' : '';
+
+    return `<tr>
+      <td style="padding:10px 12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${d.iconUrl
+            ? `<img src="${d.iconUrl}" loading="lazy" onerror="this.style.display='none'"
+                    style="width:32px;height:32px;border-radius:4px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;"/>`
+            : `<div style="width:32px;height:32px;border-radius:4px;background:var(--bg3);flex-shrink:0;"></div>`
+          }
+          <span style="font-size:13px;font-weight:700;color:var(--text-bright);">${esc(name)}</span>
+        </div>
+      </td>
+      <td style="text-align:center;font-family:var(--font-ui);padding:10px 8px;">${d.games}</td>
+      <td style="padding:10px 8px;">
+        <div class="wr-bar-wrap">
+          <div class="wr-bar"><div class="wr-bar-fill ${wrClass}" style="width:${wr}%"></div></div>
+          <span style="font-family:var(--font-ui);font-size:12px;min-width:36px;text-align:right;color:${wrColor};">${wr}%</span>
+        </div>
+      </td>
+      <td style="text-align:center;font-family:var(--font-ui);font-weight:700;padding:10px 8px;
+                 color:${kda==='Perfect'?'var(--gold)':'var(--text-bright)'};">
+        ${kda === 'Perfect' ? '⚡' : kda}
+      </td>
+      <td style="text-align:center;font-family:var(--font-ui);color:var(--text-sub);padding:10px 8px;">
+        ${(d.kills/d.games).toFixed(1)} / ${(d.deaths/d.games).toFixed(1)} / ${(d.assists/d.games).toFixed(1)}
+      </td>
+      <td style="text-align:center;font-family:var(--font-ui);font-weight:700;
+                 color:var(--text-bright);padding:10px 8px;">${avgAcs}</td>
+      <td style="text-align:center;font-family:var(--font-ui);
+                 color:var(--red-light);padding:10px 8px;">${avgHs}%</td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <table class="champ-stats-table">
+      <thead>
+        <tr>
+          <th>에이전트</th>
+          <th style="text-align:center;">게임</th>
+          <th>승률</th>
+          <th style="text-align:center;">KDA</th>
+          <th style="text-align:center;">K / D / A</th>
+          <th style="text-align:center;">ACS</th>
+          <th style="text-align:center;">HS%</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function renderTopAgents() {
+  const el     = document.getElementById('top-agents-card');
+  const sorted = Object.entries(S.agentData).sort((a, b) => b[1].games - a[1].games).slice(0, 5);
+
+  el.innerHTML = '<div class="tier-card-header">자주 쓰는 에이전트 TOP 5</div>';
+
+  if (!sorted.length) {
+    el.innerHTML += '<div class="state-box" style="padding:20px;"><span class="msg">데이터 없음</span></div>';
+    return;
+  }
+
+  const rankColors  = ['var(--gold)', '#d4d4d4', '#cd7f32', 'var(--text-muted)', 'var(--text-muted)'];
+  const rankClasses = ['top1', 'top2', 'top3', '', ''];
+
+  sorted.forEach(([name, d], i) => {
+    const wr  = Math.round(d.wins / d.games * 100);
+    const kda = d.deaths === 0 ? 'Perfect' : ((d.kills + d.assists) / d.deaths).toFixed(2);
+
+    el.innerHTML += `
+      <div class="mastery-item">
+        <span class="mastery-rank ${rankClasses[i]}">${i + 1}</span>
+        <div class="mastery-champ-icon">
+          ${d.iconUrl
+            ? `<img src="${d.iconUrl}" loading="lazy" onerror="this.style.display='none'" alt="${esc(name)}"/>`
+            : `<div style="width:100%;height:100%;background:var(--bg3);border-radius:4px;"></div>`
+          }
+        </div>
+        <div class="mastery-info">
+          <div class="mastery-champ-name">${esc(name)}</div>
+          <div class="mastery-pts">${d.games}경기 · ${wr}% 승률</div>
+        </div>
+        <div>
+          <span class="mastery-lvl-badge"
+                style="background:rgba(0,0,0,.3);border:1px solid ${rankColors[i]};
+                       color:${rankColors[i]};font-size:10px;padding:2px 6px;border-radius:3px;">
+            ${kda === 'Perfect' ? '⚡' : kda}
+          </span>
+        </div>
+      </div>`;
+  });
+}
+
+function openMatchModal(match) {
+  const info    = match.matchInfo;
+  const players = match.players || [];
+  const teams   = match.teams   || [];
+
+  const me     = players.find(p => p.puuid === S.puuid);
+  const isWin  = teams.find(t => t.teamId === me?.teamId)?.won ?? false;
+
+  // 헤더 배지
+  const badge = document.getElementById('modal-result-badge');
+  badge.textContent = isWin ? 'WIN' : 'LOSE';
+  badge.style.cssText += isWin
+    ? ';background:rgba(255,70,84,.15);color:var(--red);border:1px solid rgba(255,70,84,.35);'
+    : ';background:rgba(80,80,80,.15);color:#888;border:1px solid rgba(80,80,80,.3);';
+
+  const durSec = Math.round((info.gameLengthMillis || 0) / 1000);
+  document.getElementById('modal-queue').textContent    = info.queueName || info.queueId;
+  document.getElementById('modal-duration').textContent = `${Math.floor(durSec / 60)}:${String(durSec % 60).padStart(2,'0')}`;
+  document.getElementById('modal-date').textContent     =
+    new Date(info.gameStartMillis).toLocaleDateString('ko-KR', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('modal-map').textContent      = info.mapName || '';
+
+  // 팀 분리 (VAL: 'Red' / 'Blue')
+  const redTeam  = players.filter(p => p.teamId === 'Red');
+  const blueTeam = players.filter(p => p.teamId === 'Blue');
+
+  const redInfo  = teams.find(t => t.teamId === 'Red');
+  const blueInfo = teams.find(t => t.teamId === 'Blue');
+
+  document.getElementById('modal-team1-label').innerHTML =
+    `<span style="color:${blueInfo?.won ? 'var(--blue)' : 'var(--text-muted)'}">
+      ${blueInfo?.won ? '✔' : '✘'} 블루팀
+      <span style="margin-left:8px;color:var(--text-sub);">${blueInfo?.roundsWon ?? 0} 라운드</span>
+    </span>`;
+  document.getElementById('modal-team2-label').innerHTML =
+    `<span style="color:${redInfo?.won ? 'var(--red-light)' : 'var(--text-muted)'}">
+      ${redInfo?.won ? '✔' : '✘'} 레드팀
+      <span style="margin-left:8px;color:var(--text-sub);">${redInfo?.roundsWon ?? 0} 라운드</span>
+    </span>`;
+
+  document.getElementById('modal-team1-body').innerHTML = blueTeam.map(p => buildPlayerRow(p)).join('');
+  document.getElementById('modal-team2-body').innerHTML = redTeam.map(p  => buildPlayerRow(p)).join('');
+
+  document.getElementById('match-modal-overlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMatchModal() {
+  document.getElementById('match-modal-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function buildPlayerRow(p) {
+  const isMe   = p.puuid === S.puuid;
+  const kda    = p.kda;
+  const kdaColor = kda === 'Perfect' ? 'var(--gold)'
+                 : parseFloat(kda) >= 4 ? 'var(--red-light)'
+                 : parseFloat(kda) >= 2.5 ? '#facc15' : 'var(--text-sub)';
+
+  return `<tr class="modal-player-row${isMe ? ' me' : ''}">
+    <!-- 에이전트 + 이름 -->
+    <td style="padding:8px 6px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${p.agentIconUrl
+          ? `<img src="${p.agentIconUrl}" loading="lazy"
+                  style="width:32px;height:32px;border-radius:4px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;"
+                  onerror="this.style.display='none'"/>`
+          : `<div style="width:32px;height:32px;border-radius:4px;background:var(--bg3);flex-shrink:0;"></div>`
+        }
+        <div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <span style="font-family:var(--font-ui);font-size:13px;
+                         color:${isMe ? 'var(--red)' : 'var(--text-bright)'};
+                         font-weight:${isMe ? '700' : '600'};">
+              ${esc(p.riotIdGameName || '—')}
+            </span>
+            ${isMe ? '<span style="font-size:9px;font-weight:700;color:var(--red);">▶ 나</span>' : ''}
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);">
+            ${esc(p.agentName)}
+            ${p.tierName !== 'UNRANKED' ? `· ${p.tierName} ${p.tierDivision}` : ''}
+          </div>
+        </div>
+      </div>
+    </td>
+    <!-- K/D/A -->
+    <td style="text-align:center;font-family:var(--font-ui);font-size:13px;font-weight:600;padding:8px 6px;color:#d0c8be;">
+      ${p.stats.kills} / <span style="color:var(--red)">${p.stats.deaths}</span> / ${p.stats.assists}
+    </td>
+    <!-- KDA -->
+    <td style="text-align:center;font-family:var(--font-ui);font-size:14px;font-weight:700;
+               color:${kdaColor};padding:8px 6px;">
+      ${kda === 'Perfect' ? '⚡' : kda}
+    </td>
+    <!-- ACS -->
+    <td style="text-align:center;font-family:var(--font-ui);font-weight:700;
+               color:var(--text-bright);padding:8px 6px;">${p.acs}</td>
+    <!-- HS% -->
+    <td style="text-align:center;font-family:var(--font-ui);
+               color:var(--red-light);padding:8px 6px;">${p.damage.hsPercent}%</td>
+    <!-- DMG/R -->
+    <td style="text-align:center;font-family:var(--font-ui);
+               color:var(--text-sub);padding:8px 6px;">${p.damage.perRound}</td>
+  </tr>`;
+}
+
+async function navSearch() {
+  const name   = document.getElementById('nav-name-input').value.trim();
+  const tag    = document.getElementById('nav-tag-input').value.trim();
+  const region = document.getElementById('nav-region-select').value;
+  if (!name) { document.getElementById('nav-name-input').focus(); return; }
+
+  const searchTag = tag || region.replace(/[0-9]/g, '').toUpperCase();
+
+  let overlay = document.getElementById('goto-loading');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'goto-loading';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div class="spinner" style="width:40px;height:40px;border-width:3px;"></div>
+    <div style="font-family:var(--font-ui);font-size:13px;color:var(--text-sub);">
+      <span style="color:var(--red);font-weight:700;">${esc(name)}</span> 전적 조회 중...
+    </div>`;
+
+  try {
+    const data = await valAPI(
+      `/api/val/account/?name=${encodeURIComponent(name)}&tag=${encodeURIComponent(searchTag)}&region=${region}`
+    );
+    if (!data?.success) {
+      overlay.remove();
+      const box = document.getElementById('nav-search-box');
+      box.style.borderColor = 'var(--red)';
+      setTimeout(() => { box.style.borderColor = 'var(--border)'; }, 2000);
+      return;
+    }
+    const params = new URLSearchParams({
+      name: data.gameName, tag: data.tagLine,
+      region, puuid: data.puuid,
+    });
+    window.location.href = `/riot/val/user/?${params.toString()}`;
+  } catch (e) {
+    const o = document.getElementById('goto-loading');
+    if (o) o.remove();
+  }
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`tab-${tabId}`).classList.add('active');
+}
+
+function timeSince(ts) {
+  const s = Math.floor(Date.now() / 1000 - ts);
+  if (s < 3600)   return `${Math.floor(s / 60)}분 전`;
+  if (s < 86400)  return `${Math.floor(s / 3600)}시간 전`;
+  if (s < 604800) return `${Math.floor(s / 86400)}일 전`;
+  return new Date(ts * 1000).toLocaleDateString('ko-KR');
+}
+
+function navigateTo(url) {
+  document.body.style.transition = 'opacity .3s,transform .3s';
+  document.body.style.opacity    = '0';
+  document.body.style.transform  = 'translateY(-8px)';
+  setTimeout(() => location.href = url, 280);
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+async function init() {
+  parseParams();
+  if (!S.puuid) { location.href = '/RiotSearch/'; return; }
+  renderProfile();
+  await Promise.allSettled([
+    loadRank(),
+    initMatches(),
+  ]);
+}
+init();
+</script>
+<div id="match-modal-overlay" onclick="closeMatchModal()"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9000;overflow-y:auto;padding:32px 16px;">
+  <div id="match-modal" onclick="event.stopPropagation()" style="
+      max-width:900px; margin:0 auto;
+      background:#0a0a0a; border:1px solid #282828; border-radius:4px;
+      overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.96);
+      border-top:2px solid var(--red);">
+
+    <!-- 헤더 -->
+    <div style="padding:14px 20px;border-bottom:1px solid #242424;background:#0e0e0e;
+                display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span id="modal-result-badge"
+              style="font-family:var(--font-ui);font-size:11px;font-weight:700;letter-spacing:2px;padding:4px 10px;border-radius:3px;"></span>
+        <span id="modal-queue"    style="font-family:var(--font-ui);font-size:13px;font-weight:600;color:#b8b0a4;"></span>
+        <span id="modal-duration" style="font-family:var(--font-ui);font-size:13px;color:#928c84;"></span>
+        <span id="modal-map"      style="font-family:var(--font-ui);font-size:12px;color:var(--red-light);font-weight:600;"></span>
+        <span id="modal-date"     style="font-family:var(--font-ui);font-size:11px;color:#706860;"></span>
+      </div>
+      <button onclick="closeMatchModal()"
+              style="background:none;border:none;font-size:20px;cursor:pointer;line-height:1;padding:4px 8px;
+                     color:var(--text-muted);transition:color .15s;"
+              onmouseover="this.style.color='var(--red)'"
+              onmouseout="this.style.color='var(--text-muted)'">✕</button>
+    </div>
+
+    <!-- 팀 테이블 -->
+    <div style="padding:16px 20px;background:#0a0a0a;">
+
+      <!-- 블루팀 -->
+      <div style="margin-bottom:20px;">
+        <div id="modal-team1-label"
+             style="font-family:var(--font-ui);font-size:10px;font-weight:700;letter-spacing:2px;
+                    margin-bottom:10px;padding:6px 2px;border-bottom:1px solid #1e1e1e;"></div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="font-family:var(--font-ui);font-size:11px;color:#666;letter-spacing:1px;background:#111;font-weight:700;">
+              <th style="text-align:left;padding:5px 8px;">플레이어</th>
+              <th style="text-align:center;padding:5px 6px;">K/D/A</th>
+              <th style="text-align:center;padding:5px 6px;">KDA</th>
+              <th style="text-align:center;padding:5px 6px;">ACS</th>
+              <th style="text-align:center;padding:5px 6px;">HS%</th>
+              <th style="text-align:center;padding:5px 6px;">피해/라운드</th>
+            </tr>
+          </thead>
+          <tbody id="modal-team1-body"></tbody>
+        </table>
+      </div>
+
+      <div style="border-top:1px solid #252525;margin:8px 0 20px;"></div>
+
+      <!-- 레드팀 -->
+      <div>
+        <div id="modal-team2-label"
+             style="font-family:var(--font-ui);font-size:10px;font-weight:700;letter-spacing:2px;
+                    margin-bottom:10px;padding:6px 2px;border-bottom:1px solid #1e1e1e;"></div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="font-family:var(--font-ui);font-size:11px;color:#666;letter-spacing:1px;background:#111;font-weight:700;">
+              <th style="text-align:left;padding:5px 8px;">플레이어</th>
+              <th style="text-align:center;padding:5px 6px;">K/D/A</th>
+              <th style="text-align:center;padding:5px 6px;">KDA</th>
+              <th style="text-align:center;padding:5px 6px;">ACS</th>
+              <th style="text-align:center;padding:5px 6px;">HS%</th>
+              <th style="text-align:center;padding:5px 6px;">피해/라운드</th>
+            </tr>
+          </thead>
+          <tbody id="modal-team2-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.addEventListener('pageshow', (e) => {
+  const overlay = document.getElementById('goto-loading');
+  if (overlay) overlay.remove();
+  if (e.persisted) {
+    document.body.style.opacity    = '1';
+    document.body.style.transform  = 'none';
+  }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMatchModal(); });
+</script>
+</body>
+</html>

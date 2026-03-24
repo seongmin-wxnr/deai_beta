@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deai — 게임 선택</title>
+  <link href="https://fonts.googleapis.com/css2?family=Styrene+A:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/common.css' %}">
+  <link rel="stylesheet" href="{% static 'css/SelectCat.css' %}">
+  <link rel="stylesheet" href="{% static 'css/SelectCategory_panel.css' %}">
+</head>
+<body>
+
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <!-- Nav -->
+  <nav>
+    <span class="logo-name" style="font-size:16px;font-weight:600;color:var(--accent)">Deai - 주력게임 선택</span>
+    <div class="nav-user">
+      <div class="nav-games"   id="nav-games"></div>
+      <div class="nav-divider" id="nav-divider"></div>
+      <div class="nav-avatar"  id="nav-avatar">{{ username|slice:":1"|upper }}</div>
+      <span class="nav-username" id="nav-username">{{ username }}</span>
+      <button class="nav-logout" onclick="handleLogout()">로그아웃</button>
+    </div>
+  </nav>
+
+  <div class="dashboard-wrap">
+    <div class="dashboard-inner">
+
+      <section class="ranking-section">
+        <div class="section-header">
+          <h2 class="section-title">지금 핫한 게임 🔥</h2>
+          <span class="section-sub">총 유저</span>
+        </div>
+        <div class="ranking-list" id="ranking-list"></div>
+      </section>
+
+      <section class="games-section">
+        <div class="section-header">
+          <h2 class="section-title">플레이하는 게임 선택</h2>
+          <span class="section-sub" id="selected-count">주력 게임 1개를 선택해주세요</span>
+        </div>
+        <div class="games-grid" id="games-grid"></div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- 하단 매칭 바 -->
+  <div class="match-bar" id="match-bar">
+    <div class="match-bar-info">
+      <span class="match-bar-label">선택한 게임</span>
+      <span class="match-bar-games" id="match-bar-games">—</span>
+    </div>
+    <button class="btn-match" onclick="startMatch()">주력 게임으로 파티 찾기 →</button>
+  </div>
+
+  <div class="info-modal-overlay" id="info-modal-overlay">
+    <div class="info-modal" id="info-modal">
+      <div class="modal-game-header" id="modal-game-header"></div>
+
+      <div class="modal-section-label">플레이어 정보</div>
+      <div class="modal-field">
+        <label class="modal-label">이름 / 태그</label>
+        <div class="tag-row">
+          <input class="modal-input" id="input-name" type="text"
+                 placeholder="닉네임" maxlength="24">
+          <span class="tag-sep">#</span>
+          <input class="modal-input" id="input-tag" type="text"
+                 placeholder="태그" maxlength="10">
+        </div>
+        <div class="modal-error" id="error-name"></div>
+      </div>
+      <div id="modal-dynamic"></div>
+      <div class="modal-btns">
+        <button class="btn-modal-cancel"  onclick="cancelModal()">취소</button>
+        <button class="btn-modal-confirm" onclick="confirmModal()">선택 완료</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+
+  const GAMES = [
+    { id:1, name:'리그 오브 레전드', icon:'⚔️', genre:'MOBA',    players:0, max:5000, color:'#c89b3c' },
+    { id:2, name:'발로란트',         icon:'🎯', genre:'FPS',     players:0, max:5000, color:'#ef4444' },
+    { id:3, name:'오버워치 2',       icon:'🦸', genre:'FPS',     players:0, max:5000, color:'#f5a623' },
+    { id:4, name:'피파 온라인 4',    icon:'⚽', genre:'스포츠',  players:0, max:5000, color:'#10b981' },
+    { id:5, name:'원신',             icon:'🌸', genre:'액션RPG', players:0, max:5000, color:'#a78bfa' },
+  ];
+
+
+  const SCHEMAS = {
+
+    1: {
+      sections: [
+        { label:'랭크 티어', fields:[
+          { id:'lol_tier', label:'티어', type:'select', required:true, options:[
+            {v:'',t:'티어 선택'},
+            {v:'아이언',t:'🩶 아이언'},{v:'브론즈',t:'🥉 브론즈'},
+            {v:'실버',t:'🥈 실버'},{v:'골드',t:'🥇 골드'},
+            {v:'플래티넘',t:'🩵 플래티넘'},{v:'에메랄드',t:'💚 에메랄드'},
+            {v:'다이아몬드',t:'💎 다이아몬드'},{v:'마스터',t:'🔮 마스터'},
+            {v:'그랜드마스터',t:'🔴 그랜드마스터'},{v:'챌린저',t:'👑 챌린저'},
+          ]},
+          { id:'lol_div', label:'단계', type:'select', options:[
+            {v:'I',t:'I'},{v:'II',t:'II'},{v:'III',t:'III'},{v:'IV',t:'IV'},
+          ]},
+        ]},
+        { label:'LP', row:true, fields:[
+          { id:'lol_lp_best',    label:'최고 LP', type:'number', ph:'예) 87', min:0, max:100, mono:true, required:true },
+          { id:'lol_lp_current', label:'현재 LP', type:'number', ph:'예) 45', min:0, max:100, mono:true, required:true },
+        ]},
+        { label:'주 포지션', fields:[
+          { id:'lol_pos', label:'포지션', type:'select', options:[
+            {v:'',t:'포지션 선택'},
+            {v:'탑',t:'🗡️ 탑'},{v:'정글',t:'🌲 정글'},{v:'미드',t:'🔮 미드'},
+            {v:'원딜',t:'🏹 원딜'},{v:'서포터',t:'🛡️ 서포터'},
+          ]},
+        ]},
+      ],
+      preview: d => `${d.lol_tier} ${d.lol_div} · LP ${d.lol_lp_current}${d.lol_pos?' ('+d.lol_pos+')':''}`,
+    },
+    2: {
+      sections: [
+        { label:'랭크 티어', fields:[
+          { id:'val_tier', label:'티어', type:'select', required:true, options:[
+            {v:'',t:'티어 선택'},
+            {v:'아이언',t:'🩶 아이언'},{v:'브론즈',t:'🥉 브론즈'},
+            {v:'실버',t:'🥈 실버'},{v:'골드',t:'🥇 골드'},
+            {v:'플래티넘',t:'🩵 플래티넘'},{v:'다이아몬드',t:'💎 다이아몬드'},
+            {v:'초월자',t:'🔷 초월자'},{v:'불멸',t:'🔴 불멸'},{v:'레디언트',t:'👑 레디언트'},
+          ]},
+          { id:'val_div', label:'단계', type:'select', options:[
+            {v:'1',t:'1단계'},{v:'2',t:'2단계'},{v:'3',t:'3단계'},
+          ]},
+        ]},
+        { label:'RR 점수', row:true, fields:[
+          { id:'val_rr_best',    label:'최고 RR', type:'number', ph:'예) 85', min:0, max:100, mono:true, required:true },
+          { id:'val_rr_current', label:'현재 RR', type:'number', ph:'예) 42', min:0, max:100, mono:true, required:true },
+        ]},
+        { label:'에이전트 포지션', fields:[
+          { id:'val_role', label:'포지션', type:'select', required:true, options:[
+            {v:'',t:'포지션 선택'},
+            {v:'타격대',t:'⚔️ 타격대'},{v:'척후대',t:'🎯 척후대'},
+            {v:'감시자',t:'🛡️ 감시자'},{v:'전략가',t:'🌀 전략가'},
+          ]},
+        ]},
+      ],
+      preview: d => `${d.val_tier} ${d.val_div} · RR ${d.val_rr_current} (${d.val_role})`,
+    },
+
+    3: {
+      sections: [
+        { label:'랭크 티어', fields:[
+          { id:'ow_tier', label:'티어', type:'select', required:true, options:[
+            {v:'',t:'티어 선택'},
+            {v:'브론즈',t:'🥉 브론즈'},{v:'실버',t:'🥈 실버'},{v:'골드',t:'🥇 골드'},
+            {v:'플래티넘',t:'🩵 플래티넘'},{v:'다이아몬드',t:'💎 다이아몬드'},
+            {v:'마스터',t:'🔮 마스터'},{v:'그랜드마스터',t:'🔴 그랜드마스터'},{v:'탑500',t:'👑 탑 500'},
+          ]},
+          { id:'ow_div', label:'단계', type:'select', options:[
+            {v:'1',t:'1단계'},{v:'2',t:'2단계'},{v:'3',t:'3단계'},{v:'4',t:'4단계'},{v:'5',t:'5단계'},
+          ]},
+        ]},
+        { label:'SR 점수', row:true, fields:[
+          { id:'ow_sr_best',    label:'최고 SR', type:'number', ph:'예) 3450', min:0, max:5000, mono:true, required:true },
+          { id:'ow_sr_current', label:'현재 SR', type:'number', ph:'예) 3100', min:0, max:5000, mono:true, required:true },
+        ]},
+        { label:'주 역할', fields:[
+          { id:'ow_role', label:'역할', type:'select', required:true, options:[
+            {v:'',t:'역할 선택'},
+            {v:'탱커',t:'🛡️ 탱커'},{v:'딜러',t:'⚔️ 딜러'},{v:'힐러',t:'💊 힐러'},
+          ]},
+        ]},
+      ],
+      preview: d => `${d.ow_tier} ${d.ow_div} · SR ${d.ow_sr_current} (${d.ow_role})`,
+    },
+
+    4: {
+      sections: [
+        { label:'디비전', fields:[
+          { id:'fifa_div', label:'현재 디비전', type:'select', required:true, options:[
+            {v:'',t:'디비전 선택'},
+            {v:'슈퍼챔피언스',t:'🏆 슈퍼챔피언스'},{v:'챔피언스1',t:'👑 챔피언스 1'},
+            {v:'챔피언스2',t:'🔴 챔피언스 2'},{v:'슈퍼챌린저1',t:'💎 슈퍼챌린저 1'},
+            {v:'슈퍼챌린저2',t:'💎 슈퍼챌린저 2'},{v:'골드1',t:'🥇 골드 1'},
+            {v:'골드2',t:'🥇 골드 2'},{v:'실버1',t:'🥈 실버 1'},
+            {v:'실버2',t:'🥈 실버 2'},{v:'브론즈',t:'🥉 브론즈'},
+          ]},
+        ]},
+        { label:'레이팅 점수', row:true, fields:[
+          { id:'fifa_best',    label:'최고 레이팅', type:'number', ph:'예) 1850', min:0, max:3000, mono:true, required:true },
+          { id:'fifa_current', label:'현재 레이팅', type:'number', ph:'예) 1620', min:0, max:3000, mono:true, required:true },
+        ]},
+        { label:'선호 포메이션', fields:[
+          { id:'fifa_form', label:'포메이션', type:'select', options:[
+            {v:'4-3-3',t:'4-3-3'},{v:'4-2-3-1',t:'4-2-3-1'},
+            {v:'4-4-2',t:'4-4-2'},{v:'3-5-2',t:'3-5-2'},{v:'5-3-2',t:'5-3-2'},
+          ]},
+        ]},
+      ],
+      preview: d => `${d.fifa_div} · 레이팅 ${d.fifa_current}${d.fifa_form?' ('+d.fifa_form+')':''}`,
+    },
+    5: {
+      sections: [
+        { label:'계정 정보', fields:[
+          { id:'gs_world', label:'세계 레벨', type:'select', required:true, options:[
+            {v:'1',t:'세계 레벨 1'},{v:'2',t:'세계 레벨 2'},{v:'3',t:'세계 레벨 3'},
+            {v:'4',t:'세계 레벨 4'},{v:'5',t:'세계 레벨 5'},{v:'6',t:'세계 레벨 6'},
+            {v:'7',t:'세계 레벨 7'},{v:'8',t:'세계 레벨 8 (최고)'},
+          ]},
+          { id:'gs_ar', label:'모험가 등급 (AR)', type:'number', ph:'예) 60', min:1, max:60, mono:true },
+        ]},
+        { label:'심연의 나선', row:true, fields:[
+          { id:'gs_abyss_floor', label:'최고 층',   type:'number', ph:'예) 12', min:1, max:12, mono:true, required:true },
+          { id:'gs_abyss_stars', label:'획득 별 수', type:'number', ph:'예) 33', min:0, max:36, mono:true, required:true },
+        ]},
+        { label:'선호 컨텐츠', fields:[
+          { id:'gs_content', label:'컨텐츠', type:'select', options:[
+            {v:'심연의 나선',t:'🌀 심연의 나선'},{v:'탐험',t:'🗺️ 탐험'},
+            {v:'허수의 극장',t:'🎭 허수의 극장'},{v:'원소 부족전',t:'⚡ 원소 부족전'},
+          ]},
+        ]},
+      ],
+      preview: d => `세계 ${d.gs_world} · 심연 ${d.gs_abyss_floor}층 ${d.gs_abyss_stars}⭐`,
+    },
+  };
+
+  let   selectedGame = null;   // { gameId, name, tag, ... } 단일 객체
+  let   pendingGame  = null;
+  function renderRanking() {
+    const list = document.getElementById('ranking-list');
+    const top5 = [...GAMES].sort((a,b) => b.players - a.players);
+    list.innerHTML = top5.map((g, i) => {
+      const cls  = i===0?'gold':i===1?'silver':i===2?'bronze':'normal';
+      const icon = i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1;
+      const pct  = Math.round(g.players/g.max*100);
+      const sel  = selectedGame?.gameId === g.id;
+      return `
+        <div class="ranking-item ${sel?'selected':''}" style="--item-color:${g.color}"
+             onclick="openModal(${g.id})">
+          <span class="rank-num ${cls}">${icon}</span>
+          <div class="game-icon" style="background:${g.color}18">${g.icon}</div>
+          <div class="game-info">
+            <div class="game-name">${g.name}</div>
+            <div class="game-genre">${g.genre}</div>
+          </div>
+          <div class="game-players">
+            <span class="player-count">${g.players.toLocaleString()}명</span>
+            <div class="player-bar-wrap">
+              <div class="player-bar" style="width:0%" data-pct="${pct}"></div>
+            </div>
+          </div>
+          <div class="rank-check">${sel?'✓':''}</div>
+        </div>`;
+    }).join('');
+    setTimeout(() => document.querySelectorAll('.player-bar')
+      .forEach(b => b.style.width = b.dataset.pct+'%'), 100);
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('games-grid');
+    grid.innerHTML = GAMES.map((g, i) => {
+      const sel    = selectedGame?.gameId === g.id;
+      const schema = SCHEMAS[g.id];
+      const prev   = sel && selectedGame && schema
+        ? `<div class="card-info-preview">${selectedGame.name}#${selectedGame.tag}<br>${schema.preview(selectedGame)}</div>` : '';
+      return `
+        <div class="game-card ${sel?'selected':''}" style="animation-delay:${i*0.05}s"
+             onclick="openModal(${g.id})">
+          <span class="card-icon">${g.icon}</span>
+          <div class="card-name">${g.name}</div>
+          <div class="card-players">${g.players.toLocaleString()}명 사용 중</div>
+          ${prev}
+        </div>`;
+    }).join('');
+  }
+
+  function openModal(gameId) {
+    const game   = GAMES.find(g => g.id === gameId);
+    const schema = SCHEMAS[gameId];
+    if (!game) return;
+    pendingGame = game;
+
+    // 헤더
+    const hdr = document.getElementById('modal-game-header');
+    hdr.innerHTML = `
+      <div class="modal-game-icon-big">${game.icon}</div>
+      <div>
+        <div class="modal-game-title">${game.name}</div>
+        <div class="modal-game-genre">${game.genre}</div>
+      </div>`;
+    hdr.style.background  = `${game.color}15`;
+    hdr.style.borderColor = `${game.color}35`;
+
+    // 이전 값 (현재 선택된 게임이 이 게임이면 불러오기)
+    const prev = (selectedGame?.gameId === gameId) ? selectedGame : {};
+    document.getElementById('input-name').value = prev.name || '';
+    document.getElementById('input-tag').value  = prev.tag  || '';
+
+    // 동적 필드 렌더링
+    const dyn = document.getElementById('modal-dynamic');
+    dyn.innerHTML = schema.sections.map(sec => `
+      <div class="modal-section-label">${sec.label}</div>
+      ${sec.row
+        ? `<div class="modal-row">${sec.fields.map(f => buildField(f,prev)).join('')}</div>`
+        : sec.fields.map(f => buildField(f,prev)).join('')
+      }`).join('');
+
+    // select 값 복원
+    schema.sections.forEach(s => s.fields.forEach(f => {
+      const el = document.getElementById(f.id);
+      if (el && prev[f.id] !== undefined) el.value = prev[f.id];
+    }));
+
+    clearErrors();
+    document.getElementById('info-modal-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('input-name').focus(), 100);
+  }
+
+  // 필드 HTML 빌더
+  function buildField(f, prev={}) {
+    const val = prev[f.id] !== undefined ? prev[f.id] : '';
+    const inner = f.type === 'select'
+      ? `<select class="modal-select" id="${f.id}">
+           ${f.options.map(o=>`<option value="${o.v}"${val===o.v?' selected':''}>${o.t}</option>`).join('')}
+         </select>`
+      : `<input class="modal-input${f.mono?' mono':''}" id="${f.id}"
+               type="${f.type}" placeholder="${f.ph||''}"
+               ${f.min!==undefined?`min="${f.min}"`:''}
+               ${f.max!==undefined?`max="${f.max}"`:''}
+               value="${val}">`;
+    return `
+      <div class="modal-field">
+        <label class="modal-label">${f.label}</label>
+        ${inner}
+        <div class="modal-error" id="err-${f.id}"></div>
+      </div>`;
+  }
+  function confirmModal() {
+    clearErrors();
+    let ok = true;
+
+    const name = document.getElementById('input-name').value.trim();
+    const tag  = document.getElementById('input-tag').value.trim();
+    if (!name) { document.getElementById('error-name').textContent = '이름을 입력해주세요.'; ok=false; }
+
+    const schema = SCHEMAS[pendingGame.id];
+    const data   = { gameId: pendingGame.id, name, tag: tag||'0000' };
+
+    schema.sections.forEach(sec => sec.fields.forEach(f => {
+      const el = document.getElementById(f.id);
+      if (!el) return;
+      const v = el.value;
+      data[f.id] = f.type==='number' ? Number(v) : v;
+      if (f.required && !v) {
+        const errEl = document.getElementById('err-'+f.id);
+        if (errEl) errEl.textContent = '필수 항목입니다.';
+        ok = false;
+      }
+    }));
+
+    if (!ok) return;
+
+    selectedGame = data;
+    closeModal();
+    renderRanking();
+    renderGrid();
+    updateMatchBar();
+  }
+  function cancelModal() { closeModal(); }
+  function closeModal()  {
+    document.getElementById('info-modal-overlay').classList.remove('open');
+    pendingGame = null;
+  }
+  document.getElementById('info-modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('info-modal-overlay')) cancelModal();
+  });
+
+  function clearErrors() {
+    document.querySelectorAll('.modal-error').forEach(el => el.textContent='');
+    document.getElementById('error-name').textContent = '';
+  }
+
+  function updateMatchBar() {
+    const bar     = document.getElementById('match-bar');
+    const info    = document.getElementById('match-bar-games');
+    const countEl = document.getElementById('selected-count');
+    const navG    = document.getElementById('nav-games');
+    const navD    = document.getElementById('nav-divider');
+
+    if (!selectedGame) {
+      countEl.textContent  = '주력 게임 1개를 선택해주세요';
+      navG.innerHTML       = '';
+      navD.style.display   = 'none';
+      bar.classList.remove('visible');
+      return;
+    }
+
+    const game = GAMES.find(g => g.id === selectedGame.gameId);
+    if (!game) return;
+
+    countEl.textContent  = `✓ ${game.name} 선택됨`;
+    navD.style.display   = 'block';
+    navG.innerHTML = `
+      <div class="nav-game-tag" style="--tag-color:${game.color}">
+        <span class="nav-game-icon">${game.icon}</span>
+        <span class="nav-game-name">${game.name}</span>
+        <button class="nav-game-remove"
+                onclick="removeGame();event.stopPropagation()">✕</button>
+      </div>`;
+
+    bar.classList.add('visible');
+    info.innerHTML = `<span>${game.icon} ${game.name}</span>`;
+  }
+
+  function removeGame() {
+    selectedGame = null;
+    renderRanking(); renderGrid(); updateMatchBar();
+  }
+
+  async function startMatch() {
+    if (!selectedGame) return;
+
+    const game = GAMES.find(g => g.id === selectedGame.gameId);
+    const schema = SCHEMAS[selectedGame.gameId];
+
+    // 게임별 tier / score / sub_info 추출
+    const tierMap = {
+      lol: selectedGame.lol_tier, val: selectedGame.val_tier,
+      ow:  selectedGame.ow_tier,  fifa: selectedGame.fifa_div,
+      genshin: `세계${selectedGame.gs_world}`,
+    };
+    const bestMap = {
+      lol: selectedGame.lol_lp_best,   val: selectedGame.val_rr_best,
+      ow:  selectedGame.ow_sr_best,     fifa: selectedGame.fifa_best,
+      genshin: selectedGame.gs_abyss_floor,
+    };
+    const currentMap = {
+      lol: selectedGame.lol_lp_current, val: selectedGame.val_rr_current,
+      ow:  selectedGame.ow_sr_current,   fifa: selectedGame.fifa_current,
+      genshin: selectedGame.gs_abyss_stars,
+    };
+    const subMap = {
+      lol: selectedGame.lol_pos,  val: selectedGame.val_role,
+      ow:  selectedGame.ow_role,  fifa: selectedGame.fifa_form,
+      genshin: selectedGame.gs_content,
+    };
+
+    const gameKey = ['lol','val','ow','fifa','genshin'][selectedGame.gameId - 1];
+
+    const payload = {
+      game_id       : gameKey,
+      name_tag      : `${selectedGame.name}#${selectedGame.tag}`,
+      tier          : tierMap[gameKey] || '',
+      score_best    : bestMap[gameKey]    || 0,
+      score_current : currentMap[gameKey] || 0,
+      sub_info      : subMap[gameKey]     || '',
+    };
+
+    try {
+      const res = await fetch('/api/game/save/', {
+        method : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken' : getCookie('csrftoken'),
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        navigateTo('/Deai_main/');
+      } else {
+        alert(data.message || '저장 실패');
+      }
+    } catch (e) {
+      alert('네트워크 오류가 발생했습니다.');
+    }
+  }
+
+  async function handleLogout() {
+    await fetch('/logout/', {
+      method : 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    });
+    navigateTo('/');
+  }
+
+  function getCookie(name) {
+    let value = null;
+    document.cookie.split(';').forEach(c => {
+      const [k, v] = c.trim().split('=');
+      if (k === name) value = decodeURIComponent(v);
+    });
+    return value;
+  }
+
+  function navigateTo(url) {
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = url; }, 400);
+  }
+
+  async function loadGameStats() {
+    try {
+      const res  = await fetch('/api/game/stats/');
+      const data = await res.json();
+      if (data.success) {
+        data.stats.forEach(s => {
+          const g = GAMES.find(g => g.id === s.game_id);
+          if (g) g.players = s.count;
+        });
+      }
+    } catch(e) {
+      console.error('게임 통계 로드 실패', e);
+    }
+    renderRanking();
+    renderGrid();
+  }
+
+  loadGameStats();
+  </script>
+</body>
+</html>

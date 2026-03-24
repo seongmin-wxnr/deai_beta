@@ -1,0 +1,201 @@
+.info-modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.info-modal-overlay.open {
+  display: flex;
+  animation: overlayIn 0.2s ease both;
+}
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.info-modal {
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #131313;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 20px;
+  padding: 28px 26px;
+  margin: 20px;
+  animation: modalIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 165, 116, 0.3) transparent;
+}
+.info-modal::-webkit-scrollbar       { width: 4px; }
+.info-modal::-webkit-scrollbar-track { background: transparent; }
+.info-modal::-webkit-scrollbar-thumb {
+  background: rgba(212, 165, 116, 0.3);
+  border-radius: 100px;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.9) translateY(24px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0); }
+}
+
+.modal-game-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  margin-bottom: 6px;
+}
+.modal-game-icon-big { font-size: 30px; line-height: 1; }
+.modal-game-title    { font-size: 15px; font-weight: 700; color: var(--text); }
+.modal-game-genre    { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.modal-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  
+  color: var(--muted);
+  margin: 18px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.modal-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.modal-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.4px;
+}
+
+.modal-row                { display: flex; gap: 12px; }
+.modal-row .modal-field   { flex: 1; }
+
+.modal-input,
+.modal-select {
+  width: 100%;
+  padding: 10px 13px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s, background .2s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.modal-input::placeholder { color: rgba(232, 227, 216, 0.28); }
+.modal-input:focus,
+.modal-select:focus {
+  border-color: rgba(212, 165, 116, 0.55);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.09);
+}
+
+.modal-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(232,227,216,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+.modal-select option { background: #1c1c1c; color: #e8e3d8; }
+
+.modal-input.mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .5px;
+}
+
+.modal-input[type=number]::-webkit-inner-spin-button,
+.modal-input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+.modal-input[type=number] { -moz-appearance: textfield; }
+
+.tag-row                              { display: flex; align-items: center; gap: 8px; }
+.tag-row .modal-input:first-child     { flex: 2; }
+.tag-sep                              { font-size: 18px; color: var(--muted); flex-shrink: 0; }
+.tag-row .modal-input:last-child      { flex: 1; }
+.modal-error {
+  font-size: 11px;
+  color: #f87171;
+  min-height: 14px;
+  margin-top: -3px;
+}
+
+.modal-btns { display: flex; gap: 10px; margin-top: 22px; }
+
+.btn-modal-cancel {
+  flex: 1;
+  padding: 11px 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-modal-cancel:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.btn-modal-confirm {
+  flex: 2;
+  padding: 11px 0;
+  background: var(--accent);
+  border: none;
+  border-radius: 9px;
+  color: #0a0a0a;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-modal-confirm:hover {
+  background: #e8b888;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(212, 165, 116, .25);
+}
+.btn-modal-confirm:active { transform: translateY(0); }
+
+.card-info-preview {
+  display: none;
+  margin-top: 6px;
+  font-size: 10px;
+  color: rgba(212, 165, 116, .85);
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.6;
+  word-break: break-all;
+}
+.game-card.selected .card-info-preview { display: block; }
+
+@media (max-width: 480px) {
+  .info-modal { padding: 22px 18px; border-radius: 16px; }
+  .modal-row  { flex-direction: column; gap: 0; }
+  .tag-row .modal-input:first-child { flex: 1.5; }
+}

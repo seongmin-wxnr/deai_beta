@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+{% load static %}
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{% static 'css/common.css' %}">
+  <link rel="stylesheet" href="{% static 'css/index.css' %}">
+  <title>Deai - 소개</title>
+  <link href="https://fonts.googleapis.com/css2?family=Styrene+A:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body {
+        overflow-y: auto !important;
+    }
+
+    .footer-bar {
+        position: relative !important;
+        margin-top: 48px;
+    }
+    .about-wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 120px 24px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 64px;
+    }
+
+    /* 히어로 */
+    .about-hero {
+      text-align: center;
+    }
+    .about-hero .eyebrow {
+      margin-bottom: 12px;
+    }
+    .about-hero .headline {
+      font-size: clamp(48px, 8vw, 80px);
+      margin-bottom: 16px;
+    }
+    .about-hero .subtext {
+      font-size: 16px;
+      line-height: 1.8;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* 섹션 */
+    .about-section {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      opacity: 0;
+      transform: translateY(28px);
+      animation: fadeUp 0.6s ease forwards;
+    }
+    .about-section:nth-child(2) { animation-delay: 0.1s; }
+    .about-section:nth-child(3) { animation-delay: 0.2s; }
+    .about-section:nth-child(4) { animation-delay: 0.3s; }
+    .about-section:nth-child(5) { animation-delay: 0.4s; }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent, #c9a84c);
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .section-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text, #f0ece0);
+      line-height: 1.3;
+      margin: 0;
+    }
+
+    .section-body {
+      font-size: 15px;
+      color: var(--muted, #8a8070);
+      line-height: 1.8;
+      margin: 0;
+    }
+
+    /* 기능 카드 그리드 */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 18px;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color 0.25s, background 0.25s;
+    }
+    .feature-card:hover {
+      background: rgba(255,255,255,0.055);
+      border-color: rgba(201,168,76,0.25);
+    }
+
+    .feature-icon {
+      font-size: 26px;
+      width: 48px; height: 48px;
+      background: rgba(201,168,76,0.08);
+      border: 1px solid rgba(201,168,76,0.15);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .feature-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text, #f0ece0);
+    }
+
+    .feature-desc {
+      font-size: 12px;
+      color: var(--muted, #8a8070);
+      line-height: 1.7;
+    }
+
+    /* 게임 목록 */
+    .game-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .game-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 99px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text, #f0ece0);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .game-chip:hover {
+      background: rgba(201,168,76,0.08);
+      border-color: rgba(201,168,76,0.3);
+    }
+
+    /* 흐름 스텝 */
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .step-item {
+      display: flex;
+      gap: 20px;
+      padding: 20px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .step-item:last-child { border-bottom: none; }
+
+    .step-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent, #c9a84c);
+      width: 28px;
+      height: 28px;
+      border: 1px solid rgba(201,168,76,0.3);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-content { flex: 1; }
+    .step-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text, #f0ece0);
+      margin-bottom: 4px;
+    }
+    .step-desc {
+      font-size: 13px;
+      color: var(--muted, #8a8070);
+      line-height: 1.6;
+    }
+
+    /* CTA */
+    .about-cta {
+      text-align: center;
+      padding: 48px 0 16px;
+    }
+    .about-cta .cta-group {
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 배경 Orb -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <!-- Nav -->
+  <nav>
+    <button class="nav-link" onclick="navigateTo('/')">첫 화면으로</button>
+    <button class="nav-link" onclick="navigateTo('/login/')">로그인</button>
+    <button class="nav-link" onclick="navigateTo('/register/')">회원가입</button>
+  </nav>
+
+  <div class="about-wrap">
+
+    <!-- 히어로 -->
+    <div class="about-hero about-section">
+      <p class="eyebrow">Deai 소개</p>
+      <h1 class="headline">Deai</h1>
+      <p class="subtext">
+        게임을 더 즐겁게.<br>
+        같이 플레이할 파티를 찾아드립니다.
+      </p>
+    </div>
+
+    <!-- Deai 란? -->
+    <div class="about-section">
+      <div class="section-label">About</div>
+      <h2 class="section-title">Deai는 무엇인가요?</h2>
+      <p class="section-body">
+        Deai(데아이)는 일본어로 <strong style="color:var(--text)">"만남"</strong>을 의미해요.<br>
+        혼자 플레이하기 지루하거나, 실력에 맞는 파티원을 찾고 싶을 때
+        Deai에서 모집 글을 올리거나 원하는 파티에 참여해보세요.<br><br>
+        티어 조건, 포지션, 게임 스타일까지 맞는 사람과 함께라면
+        게임이 더 재밌어집니다.
+      </p>
+    </div>
+
+    <!-- 주요 기능 -->
+    <div class="about-section">
+      <div class="section-label">Features</div>
+      <h2 class="section-title">주요 기능</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📋</div>
+          <div class="feature-name">파티 모집</div>
+          <div class="feature-desc">게임, 티어 조건, 모집 인원을 설정해 원하는 파티원을 모집하세요.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🙋</div>
+          <div class="feature-name">파티 참여</div>
+          <div class="feature-desc">마음에 드는 모집글에 참여 신청해 바로 파티에 합류하세요.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💬</div>
+          <div class="feature-name">실시간 채팅</div>
+          <div class="feature-desc">파티원들과 모집글 내 채팅방에서 실시간으로 소통하세요.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">👥</div>
+          <div class="feature-name">친구 시스템</div>
+          <div class="feature-desc">자주 함께하는 유저를 친구로 추가하고 요청을 주고받으세요.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏅</div>
+          <div class="feature-name">게임 프로필</div>
+          <div class="feature-desc">게임별 티어, 인게임 ID, 포지션을 등록해 나를 알려보세요.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔔</div>
+          <div class="feature-name">알림</div>
+          <div class="feature-desc">친구 요청이 오면 알림으로 바로 확인하고 수락하세요.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 지원 게임 -->
+    <div class="about-section">
+      <div class="section-label">Games</div>
+      <h2 class="section-title">지원 게임</h2>
+      <p class="section-body">현재 아래 게임의 파티 모집을 지원하고 있어요.</p>
+      <div class="game-list">
+        <div class="game-chip">⚔️ 리그오브레전드</div>
+        <div class="game-chip">🔫 발로란트</div>
+        <div class="game-chip">🦸 오버워치 2</div>
+        <div class="game-chip">⚽ 피파온라인 4</div>
+        <div class="game-chip">🌿 원신</div>
+      </div>
+    </div>
+
+    <!-- 사용 방법 -->
+    <div class="about-section">
+      <div class="section-label">How to use</div>
+      <h2 class="section-title">어떻게 시작하나요?</h2>
+      <div class="step-list">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">회원가입 & 게임 프로필 등록</div>
+            <div class="step-desc">닉네임과 이메일로 가입 후, 즐기는 게임의 티어와 포지션을 등록하세요.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">모집글 탐색</div>
+            <div class="step-desc">게임별 탭에서 원하는 조건의 파티 모집글을 확인하세요.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">파티 참여 또는 모집</div>
+            <div class="step-desc">마음에 드는 글에 참여하거나, 직접 파티원을 모집하는 글을 올리세요.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">채팅으로 소통</div>
+            <div class="step-desc">모집글 채팅방에서 파티원들과 게임 전략을 논의하세요.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="about-cta about-section">
+      <p class="eyebrow">지금 바로 시작해보세요</p>
+      <h2 class="section-title" style="margin-bottom:28px">파티를 찾아드릴게요</h2>
+      <div class="cta-group">
+        <button class="btn btn-primary" onclick="navigateTo('/register/')">무료로 시작하기</button>
+        <button class="btn btn-secondary" onclick="navigateTo('/login/')">로그인</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer-bar">
+    <a href="#" class="footer-link">개인정보 처리방침</a>
+    <a href="#" class="footer-link">이용약관</a>
+    <a href="#" class="footer-link">© 2025 Deai</a>
+  </footer>
+
+  <script>
+    function navigateTo(url) {
+      document.body.classList.add('fade-out');
+      setTimeout(() => { window.location.href = url; }, 400);
+    }
+  </script>
+
+</body>
+</html>

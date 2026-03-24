@@ -1,0 +1,1120 @@
+{% load static %}
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>티모 없애기</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --red:    #e8003a;
+      --yellow: #f5c518;
+      --dark:   #0a0a0f;
+      --mid:    #12121a;
+      --panel:  #1a1a28;
+      --text:   #e8e0d0;
+      --sub:    #888;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--dark);
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      cursor: crosshair;
+      user-select: none;
+    }
+
+    /* 배경 격자 */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(232,0,58,.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(232,0,58,.06) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* 상단 HUD */
+    #hud {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 28px;
+      background: linear-gradient(180deg, rgba(10,10,15,.95) 80%, transparent);
+      border-bottom: 1px solid rgba(232,0,58,.18);
+    }
+
+    #title-text {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 2px;
+      color: var(--red);
+      text-shadow: 0 0 20px rgba(232,0,58,.5);
+    }
+
+
+
+    /* 게임 필드 */
+    #field {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+    }
+
+    /* 티모 */
+    #teemo {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      transition: filter .1s;
+      will-change: transform, left, top;
+      cursor: none;
+    }
+
+    #teemo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 0px rgba(232,0,58,.0));
+      transition: filter .2s, transform .2s;
+      transform-origin: center center;
+    }
+
+    #teemo.scared img {
+      filter: drop-shadow(0 0 18px rgba(232,0,58,.95));
+      transform: scale(1.1);
+    }
+
+    #teemo.hit img {
+      filter: brightness(4) saturate(0) drop-shadow(0 0 24px #fff);
+      transform: scale(.55) rotate(25deg);
+    }
+
+    /* 혐오감 이모지 파티클 */
+    .particle {
+      position: fixed;
+      font-size: 1.8rem;
+      pointer-events: none;
+      z-index: 200;
+      animation: particle-fly .9s ease-out forwards;
+    }
+
+    @keyframes particle-fly {
+      0%   { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.4) rotate(var(--dr)); }
+    }
+
+    /* 타격 텍스트 */
+    .hit-text {
+      position: fixed;
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: 2.2rem;
+      color: var(--red);
+      text-shadow: 0 0 20px rgba(232,0,58,.9), 2px 2px 0 #000;
+      pointer-events: none;
+      z-index: 200;
+      animation: hit-text-fly .8s ease-out forwards;
+      white-space: nowrap;
+    }
+
+    @keyframes hit-text-fly {
+      0%   { opacity: 1; transform: translateY(0) scale(1.2); }
+      30%  { transform: translateY(-20px) scale(1); }
+      100% { opacity: 0; transform: translateY(-60px) scale(.8); }
+    }
+
+    /* 화면 플래시 */
+    #flash {
+      position: fixed;
+      inset: 0;
+      background: var(--red);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 300;
+      transition: opacity .05s;
+    }
+
+    #flash.active { opacity: .18; }
+
+
+
+    /* 도망 말풍선 */
+    #bubble {
+      position: absolute;
+      background: var(--panel);
+      border: 1.5px solid var(--red);
+      border-radius: 10px 10px 10px 2px;
+      padding: 6px 12px;
+      font-size: .8rem;
+      color: var(--text);
+      white-space: nowrap;
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(8px, -110%);
+      transition: opacity .2s;
+    }
+    #bubble.show { opacity: 1; }
+
+
+    /* 하단 네비게이션 버튼 */
+    #nav-bar {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .nav-btn {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: .78rem;
+      letter-spacing: 1.5px;
+      color: var(--text);
+      background: rgba(26,26,40,.85);
+      border: 1px solid rgba(232,0,58,.3);
+      border-radius: 4px;
+      padding: 8px 16px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .18s, border-color .18s, color .18s, box-shadow .18s, transform .12s;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(6px);
+    }
+
+    .nav-btn:hover {
+      background: rgba(232,0,58,.18);
+      border-color: var(--red);
+      color: #fff;
+      box-shadow: 0 0 14px rgba(232,0,58,.35);
+      transform: translateY(-2px);
+    }
+
+    .nav-btn:active {
+      transform: translateY(0);
+    }
+
+    .nav-btn .nav-icon {
+      font-size: .9rem;
+      line-height: 1;
+    }
+
+    /* 하단 안내 */
+    #guide {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: .72rem;
+      color: var(--sub);
+      letter-spacing: 1.5px;
+      z-index: 100;
+      text-align: center;
+    }
+
+    /* 혈흔 */
+    .blood-splat {
+      position: fixed;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #c00 0%, rgba(150,0,0,.0) 70%);
+      pointer-events: none;
+      z-index: 5;
+      animation: splat-fade 2s ease-out forwards;
+      transform: translate(-50%, -50%);
+    }
+
+    @keyframes splat-fade {
+      0%   { opacity: .9; transform: translate(-50%,-50%) scale(0); }
+      20%  { opacity: .6; transform: translate(-50%,-50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%,-50%) scale(1.4); }
+    }
+
+    /* 깜짝 이펙트 — 죽었을 때 */
+    .death-ring {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 3px solid var(--red);
+      pointer-events: none;
+      z-index: 150;
+      animation: ring-expand .6s ease-out forwards;
+      transform: translate(-50%, -50%);
+    }
+
+    @keyframes ring-expand {
+      0%   { opacity: 1; width: 10px; height: 10px; }
+      100% { opacity: 0; width: 180px; height: 180px; }
+    }
+
+
+
+    /* ═══════════════════════════════════
+       오른쪽 슬라이드 스킬 패널
+    ═══════════════════════════════════ */
+
+    /* 탭 토글 버튼 */
+    #skill-tab {
+      position: fixed;
+      right: 0; top: 50%;
+      transform: translateY(-50%);
+      z-index: 500;
+      background: rgba(26,26,40,.92);
+      border: 1px solid rgba(232,0,58,.4);
+      border-right: none;
+      border-radius: 8px 0 0 8px;
+      padding: 12px 8px;
+      cursor: pointer;
+      writing-mode: vertical-rl;
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: .75rem;
+      letter-spacing: 3px;
+      color: var(--red);
+      backdrop-filter: blur(8px);
+      transition: background .2s, padding .2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+    #skill-tab:hover { background: rgba(232,0,58,.15); }
+    #skill-tab .tab-arrow { writing-mode: horizontal-tb; font-size: 1rem; transition: transform .3s; }
+    #skill-tab.open .tab-arrow { transform: rotate(180deg); }
+
+    /* 슬라이드 패널 */
+    #skill-panel {
+      position: fixed;
+      right: -300px;
+      top: 0; bottom: 0;
+      width: 280px;
+      z-index: 499;
+      background: rgba(12,12,20,.96);
+      border-left: 1px solid rgba(232,0,58,.25);
+      backdrop-filter: blur(12px);
+      transition: right .35s cubic-bezier(.4,0,.2,1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #skill-panel.open { right: 0; }
+
+    .panel-header {
+      padding: 18px 20px 12px;
+      border-bottom: 1px solid rgba(232,0,58,.15);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .panel-header h2 {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: 1rem;
+      letter-spacing: 2px;
+      color: var(--red);
+      text-shadow: 0 0 12px rgba(232,0,58,.5);
+    }
+    .panel-header .header-icon { font-size: 1.3rem; }
+
+    .panel-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .panel-scroll::-webkit-scrollbar { width: 4px; }
+    .panel-scroll::-webkit-scrollbar-track { background: transparent; }
+    .panel-scroll::-webkit-scrollbar-thumb { background: rgba(232,0,58,.3); border-radius: 2px; }
+
+    /* 스킬 카드 */
+    .skill-card {
+      background: rgba(26,26,40,.7);
+      border: 1px solid rgba(232,0,58,.18);
+      border-radius: 8px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: border-color .2s, background .2s, transform .15s, box-shadow .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .skill-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(232,0,58,.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .skill-card:hover {
+      border-color: rgba(232,0,58,.6);
+      background: rgba(232,0,58,.1);
+      transform: translateX(-3px);
+      box-shadow: 4px 0 16px rgba(232,0,58,.2);
+    }
+    .skill-card:active { transform: translateX(-1px) scale(.98); }
+    .skill-card.disabled {
+      opacity: .45;
+      pointer-events: none;
+    }
+    .skill-card.cooling::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,.5);
+      border-radius: 8px;
+    }
+
+    .skill-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .skill-icon {
+      font-size: 1.6rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .skill-name {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: .88rem;
+      letter-spacing: 1px;
+      color: var(--text);
+    }
+    .skill-cd {
+      margin-left: auto;
+      font-size: .65rem;
+      color: var(--yellow);
+      background: rgba(245,197,24,.1);
+      border: 1px solid rgba(245,197,24,.3);
+      border-radius: 4px;
+      padding: 2px 6px;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    .skill-desc {
+      font-size: .72rem;
+      color: var(--sub);
+      line-height: 1.5;
+    }
+
+    /* 쿨다운 오버레이 텍스트 */
+    .cd-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: 1.6rem;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0,0,0,.8);
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .1s;
+    }
+    .skill-card.cooling .cd-overlay { opacity: 1; }
+
+
+
+    /* 패널 구분선 */
+    .panel-divider {
+      font-size: .6rem;
+      color: rgba(136,136,136,.5);
+      letter-spacing: 3px;
+      text-align: center;
+      text-transform: uppercase;
+      padding: 4px 0 2px;
+    }
+
+    /* 스킬 준비 중 플레이스홀더 */
+    .panel-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 48px 20px;
+      opacity: .5;
+    }
+    .placeholder-icon {
+      font-size: 2.4rem;
+      animation: placeholder-spin 3s linear infinite;
+    }
+    @keyframes placeholder-spin {
+      0%   { transform: rotate(0deg)   scale(1);    }
+      25%  { transform: rotate(10deg)  scale(1.05); }
+      75%  { transform: rotate(-10deg) scale(.95);  }
+      100% { transform: rotate(0deg)   scale(1);    }
+    }
+    .placeholder-text {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: .9rem;
+      letter-spacing: 2px;
+      color: var(--sub);
+    }
+    .placeholder-sub {
+      font-size: .68rem;
+      color: rgba(136,136,136,.6);
+      letter-spacing: 1px;
+    }
+
+    /* 전체화면 이벤트 알림 */
+    #event-banner {
+      position: fixed;
+      top: 70px; left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(12,12,20,.92);
+      border: 1px solid var(--red);
+      border-radius: 6px;
+      padding: 8px 20px;
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: .95rem;
+      color: var(--text);
+      letter-spacing: 2px;
+      z-index: 400;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s, transform .2s;
+      white-space: nowrap;
+      box-shadow: 0 0 20px rgba(232,0,58,.3);
+    }
+    #event-banner.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* 바론 */
+    #baron {
+      position: fixed;
+      width: 330px;
+      height: 330px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 30;
+      display: none;
+      filter: drop-shadow(0 0 18px rgba(160, 0, 255, 0.85));
+      transition: filter .2s;
+    }
+    #baron img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    #baron.active {
+      display: block;
+    }
+    /* 바론 출현 파동 링 */
+    .baron-ring {
+      position: fixed;
+      border-radius: 50%;
+      border: 3px solid rgba(160,0,255,.8);
+      pointer-events: none;
+      z-index: 29;
+      transform: translate(-50%, -50%);
+      animation: baron-ring-expand .8s ease-out forwards;
+    }
+    @keyframes baron-ring-expand {
+      0%   { width: 20px; height: 20px; opacity: 1; }
+      100% { width: 220px; height: 220px; opacity: 0; }
+    }
+    /* 티모 끌려가는 상태 */
+    #teemo.suctioned img {
+      filter: drop-shadow(0 0 18px rgba(160,0,255,.9)) brightness(1.2);
+      transform: scale(0.85);
+    }
+    /* 바론 이벤트 배너 */
+    #event-banner {
+      position: fixed;
+      top: 70px; left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(12,12,20,.92);
+      border: 1px solid #a000ff;
+      border-radius: 6px;
+      padding: 8px 20px;
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: .95rem;
+      color: var(--text);
+      letter-spacing: 2px;
+      z-index: 400;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s, transform .2s;
+      white-space: nowrap;
+      box-shadow: 0 0 20px rgba(160,0,255,.4);
+    }
+    #event-banner.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* 갱 챔피언 */
+    .gank-champ {
+      position: fixed;
+      width: 80px;
+      height: 80px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 30;
+      filter: drop-shadow(0 0 10px rgba(232,0,58,.7));
+      transition: filter .2s;
+    }
+    .gank-champ img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    /* 갱 출현 링 */
+    .gank-ring {
+      position: fixed;
+      border-radius: 50%;
+      border: 2px solid rgba(232,0,58,.8);
+      pointer-events: none;
+      z-index: 29;
+      transform: translate(-50%, -50%);
+      animation: gank-ring-expand .6s ease-out forwards;
+    }
+    @keyframes gank-ring-expand {
+      0%   { width: 10px; height: 10px; opacity: 1; }
+      100% { width: 160px; height: 160px; opacity: 0; }
+    }
+  </style>
+  <script>
+    function navigateTo(url) {
+      document.body.classList.add('fade-out');
+      setTimeout(() => { window.location.href = url; }, 300);
+    }
+  </script>
+</head>
+<body>
+<div id="hud">
+  <div id="title-text">티모 파괴방</div>
+
+</div>
+
+<div id="field">
+  <div id="teemo">
+    <img id="teemo-img" src="{% static 'image_source/teemo_.jpg' %}" alt="티모" draggable="false">
+    <div id="bubble"></div>
+  </div>
+</div>
+
+<div id="flash"></div>
+<div id="baron">
+  <img src="{% static 'image_source/baron.jpg' %}" alt="바론" draggable="false">
+</div>
+<!-- 이벤트 배너 -->
+<div id="event-banner"></div>
+
+
+<div id="nav-bar">
+    <button class="nav-back nav-main-link" onclick="navigateTo('/RiotRanking/')">
+      랭킹 페이지
+    </button>
+    <button class="nav-back nav-main-link" onclick="navigateTo('/RiotInfo/')">
+      정보 페이지
+    </button>
+    <button class="nav-back nav-main-link" onclick="navigateTo('/RiotSearch/')">
+      검색 페이지
+    </button>
+</div>
+
+
+<!-- 스킬 탭 버튼 -->
+<div id="skill-tab" onclick="togglePanel()">
+  <span class="tab-arrow">◀</span>
+  <span>스킬</span>
+  <span>패널</span>
+</div>
+
+<!-- 스킬 패널 -->
+<div id="skill-panel">
+  <div class="panel-header">
+    <span class="header-icon">⚔️</span>
+    <h2>아군 스킬</h2>
+  </div>
+  <div class="panel-scroll">
+
+    <div class="panel-divider">── 처치 스킬 ──</div>
+
+    <!-- 바론 밥 주기 -->
+    <div class="skill-card" id="skill-baron" onclick="skillBaron()">
+      <div class="cd-overlay" id="cd-baron"></div>
+      <div class="skill-top">
+        <span class="skill-icon">! </span>
+        <span class="skill-name">바론 밥 주기</span>
+        <span class="skill-cd">재사용: 2s</span>
+      </div>
+      <div class="skill-desc">바론에게 티모 던져주기</div>
+    </div>
+
+    <!-- 갱 부르기 -->
+    <div class="skill-card" id="skill-gank" onclick="skillGank()">
+      <div class="cd-overlay" id="cd-gank"></div>
+      <div class="skill-top">
+        <span class="skill-icon">🗡️</span>
+        <span class="skill-name">갱 부르기</span>
+        <span class="skill-cd">재사용: 2s</span>
+      </div>
+      <div class="skill-desc">챔피언이 어딘가에서 나타나 티모에게 돌진한다.</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const teemo   = document.getElementById('teemo');
+  const field   = document.getElementById('field');
+  const flash   = document.getElementById('flash');
+  const bubble  = document.getElementById('bubble');
+
+  const W = () => window.innerWidth;
+  const H = () => window.innerHeight;
+
+  /* 상태 */
+  let tx = W() / 2, ty = H() / 2;   // 티모 현재 위치
+  let kills = 0, combo = 0, flees = 0;
+  let isHit = false;
+  let mouseX = -999, mouseY = -999;
+  let fleeTimeout = null;
+  let bubbleTimeout = null;
+  let dir = 1;  // 바라보는 방향
+  let facingRight = true;
+
+  const FLEE_RADIUS   = 160;   // 이 거리 안으로 마우스 들어오면 도망
+  const FLEE_SPEED    = 9;
+  const SCARED_RADIUS = 220;
+  const MARGIN        = 60;
+
+  /* HUD 업데이트 */
+  function updateHud() {}
+
+  /* 거리 계산 */
+  function dist(x1, y1, x2, y2) {
+    return Math.hypot(x2 - x1, y2 - y1);
+  }
+
+  /* 도망 방향 벡터 */
+  function fleeDir() {
+    const dx = tx - mouseX;
+    const dy = ty - mouseY;
+    const len = Math.hypot(dx, dy) || 1;
+    return { x: dx / len, y: dy / len };
+  }
+
+  /* 랜덤 도망 대사 */
+  const FLEE_LINES = [
+    'ㅋㅅㅋㅅㅋㅅㅋㅅㅋㅅㅋㅅㅋ', 'ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ', 'ㅋㅋㅋㅋ', 'ㅋ',
+    'ㅋㅋㅋ', 'ㅋㅋ', '버섯 밟아라!',
+    'ㅋ~', '~~', 'ㅗ'
+  ];
+
+  function showBubble(text) {
+    bubble.textContent = text;
+    bubble.classList.add('show');
+    clearTimeout(bubbleTimeout);
+    bubbleTimeout = setTimeout(() => bubble.classList.remove('show'), 1200);
+  }
+
+  /* 파티클 이펙트 */
+  const HIT_EMOJIS = ['💀','☠️'];
+  const HIT_TEXTS  = ['꺼지쇼','잡았죠','ㅋㅋㅋㅋ'];
+
+  function spawnParticles(x, y) {
+    for (let i = 0; i < 8; i++) {
+      const el = document.createElement('div');
+      el.className = 'particle';
+      el.textContent = HIT_EMOJIS[Math.floor(Math.random() * HIT_EMOJIS.length)];
+      const angle = (Math.PI * 2 * i) / 8 + (Math.random() - .5) * .8;
+      const spd   = 60 + Math.random() * 80;
+      el.style.cssText = `
+        left:${x}px; top:${y}px;
+        --dx:${Math.cos(angle)*spd}px;
+        --dy:${Math.sin(angle)*spd}px;
+        --dr:${(Math.random()-0.5)*180}deg;
+      `;
+      document.body.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+  }
+
+  function spawnHitText(x, y) {
+    const el = document.createElement('div');
+    el.className = 'hit-text';
+    const txt = combo >= 5
+      ? `${combo} COMBO!!`
+      : HIT_TEXTS[Math.floor(Math.random() * HIT_TEXTS.length)];
+    el.textContent = txt;
+    el.style.cssText = `left:${x - 60}px; top:${y - 30}px;`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+
+  function spawnBlood(x, y) {
+    const el = document.createElement('div');
+    el.className = 'blood-splat';
+    el.style.cssText = `left:${x}px; top:${y}px;`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+
+  function spawnRing(x, y) {
+    const el = document.createElement('div');
+    el.className = 'death-ring';
+    el.style.cssText = `left:${x}px; top:${y}px;`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+
+  function flashScreen() {
+    flash.classList.add('active');
+    setTimeout(() => flash.classList.remove('active'), 120);
+  }
+
+
+  /* 실제 이미지 사용 — SVG 눈 추적 없음 */
+  function trackEyes() {}
+
+  /* 티모 위치 업데이트 */
+  function moveTo(x, y) {
+    x = Math.max(MARGIN, Math.min(W() - MARGIN, x));
+    y = Math.max(MARGIN + 60, Math.min(H() - MARGIN, y));
+
+    // 이동 방향에 따라 좌우 반전
+    if (x > tx + 1)  { facingRight = true;  }
+    if (x < tx - 1)  { facingRight = false; }
+
+    const img = document.getElementById('teemo-img');
+    img.style.transform = facingRight ? 'scaleX(1)' : 'scaleX(-1)';
+
+    tx = x;
+    ty = y;
+    teemo.style.left = tx + 'px';
+    teemo.style.top  = ty + 'px';
+  }
+
+  let gankChamps = [];
+
+  const GANK_IMAGES = [
+    "{% static 'image_source/Sylas.jpg' %}",
+    "{% static 'image_source/Shaco.jpg' %}",
+    "{% static 'image_source/Lux.jpg' %}",
+    "{% static 'image_source/Aatrox.jpg' %}",
+    "{% static 'image_source/Shyvana.jpg' %}",
+    "{% static 'image_source/Belveth.jpg' %}",
+  ];
+
+  function skillGank() {
+    const card = document.getElementById('skill-gank');
+    if (card.classList.contains('cooling')) return;
+    startCooldown('skill-gank', 'cd-gank', 2);
+    if (panelOpen) togglePanel();
+
+    // 랜덤 챔피언 이미지 선택
+    const imgSrc = GANK_IMAGES[Math.floor(Math.random() * GANK_IMAGES.length)];
+
+    // 화면 4방향 모서리 중 랜덤 출발점
+    const edges = [
+      { x: -50,       y: Math.random() * H() },
+      { x: W() + 50,  y: Math.random() * H() },
+      { x: Math.random() * W(), y: -50      },
+      { x: Math.random() * W(), y: H() + 50 },
+    ];
+    const start = edges[Math.floor(Math.random() * edges.length)];
+
+    // DOM 생성
+    const el = document.createElement('div');
+    el.className = 'gank-champ';
+    el.style.left = start.x + 'px';
+    el.style.top  = start.y + 'px';
+    el.innerHTML  = `<img src="${imgSrc}" alt="챔피언" draggable="false">`;
+    document.body.appendChild(el);
+
+    // 출현 링
+    for (let i = 0; i < 2; i++) {
+      setTimeout(() => {
+        const ring = document.createElement('div');
+        ring.className = 'gank-ring';
+        ring.style.left = start.x + 'px';
+        ring.style.top  = start.y + 'px';
+        document.body.appendChild(ring);
+        ring.addEventListener('animationend', () => ring.remove());
+      }, i * 180);
+    }
+    showBanner(`ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ`);
+    showBubble('????!!!!!!!!!');
+
+    gankChamps.push({ el, x: start.x, y: start.y, speed: 5 });
+  }
+
+  teemo.style.left = tx + 'px';
+  teemo.style.top  = ty + 'px';
+
+  /* 랜덤 위치로 순간이동 (죽은 후 부활) */
+  function respawn() {
+    const nx = MARGIN + Math.random() * (W() - MARGIN * 2);
+    const ny = MARGIN + 80 + Math.random() * (H() - MARGIN * 2 - 80);
+    // 마우스에서 멀리
+    if (dist(nx, ny, mouseX, mouseY) < 200) {
+      respawn(); return;
+    }
+    tx = nx; ty = ny;
+    teemo.style.left = tx + 'px';
+    teemo.style.top  = ty + 'px';
+    teemo.classList.remove('hit', 'scared');
+    isHit = false;
+    updateHud();
+    showBubble('부활! 이번엔 못 잡아~');
+  }
+
+  /* 클릭 처리 */
+  field.addEventListener('click', e => {
+    const cx = e.clientX, cy = e.clientY;
+    const d = dist(cx, cy, tx, ty);
+    if (d > 45) {
+      // 빗나감 — 티모가 놀림
+      combo = 0;
+      const misses = ['허허!', '못 맞추네~', '노린 거 다 보여!', '아이고~'];
+      showBubble(misses[Math.floor(Math.random() * misses.length)]);
+      return;
+    }
+
+    // 명중!
+    combo++;
+    kills = kills; // 아직 죽지 않음
+    flashScreen();
+    spawnParticles(cx, cy);
+    spawnHitText(cx, cy);
+    spawnBlood(tx, ty);
+    teemo.classList.add('hit');
+
+    // 명중 → 즉시 처치
+    kills++;
+    combo = 0;
+    spawnRing(tx, ty);
+    teemo.style.opacity = '0';
+    setTimeout(() => {
+      teemo.style.opacity = '1';
+      respawn();
+    }, 800);
+  });
+
+  /* 마우스 추적 */
+  window.addEventListener('mousemove', e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  });
+
+  /* 게임 루프 */
+  let lastFlee = 0;
+  function gameLoop(ts) {
+    if (!isHit) {
+      const d = dist(mouseX, mouseY, tx, ty);
+
+      // 겁먹기
+      if (d < SCARED_RADIUS) {
+        teemo.classList.add('scared');
+      } else {
+        teemo.classList.remove('scared');
+      }
+   
+      if (!isSuctioned && d < FLEE_RADIUS) {
+        const fd = fleeDir();
+        moveTo(tx + fd.x * FLEE_SPEED, ty + fd.y * FLEE_SPEED);
+
+        // 도망 카운트 + 대사
+        if (ts - lastFlee > 1200) {
+          lastFlee = ts;
+          flees++;
+          updateHud();
+          showBubble(FLEE_LINES[Math.floor(Math.random() * FLEE_LINES.length)]);
+        }
+      }
+
+      // 갱 챔피언 이동 + 충돌 판정
+      for (let i = gankChamps.length - 1; i >= 0; i--) {
+        const g = gankChamps[i];
+        const gdx = tx - g.x;
+        const gdy = ty - g.y;
+        const gd  = Math.hypot(gdx, gdy) || 1;
+        g.x += (gdx / gd) * g.speed;
+        g.y += (gdy / gd) * g.speed;
+        g.el.style.left = g.x + 'px';
+        g.el.style.top  = g.y + 'px';
+        // 방향 반전
+        g.el.querySelector('img').style.transform = gdx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+        // 충돌 판정 (50px)
+        if (gd < 50) {
+          g.el.remove();
+          gankChamps.splice(i, 1);
+          kills++;
+          combo++;
+          spawnParticles(tx, ty);
+          spawnRing(tx, ty);
+          flashScreen();
+          showBubble('??!??!?!?!!!!!!!!!!???????????');
+          showBanner('건방지게 존재하는 티모, 아무래도 없애야할 듯');
+          teemo.style.opacity = '0';
+          setTimeout(() => { teemo.style.opacity = '1'; respawn(); }, 800);
+          updateHud();
+        }
+      }
+
+      if (isSuctioned && baronActive) {
+        const bdx = baronX - tx;
+        const bdy = baronY - ty;
+        const bd  = Math.hypot(bdx, bdy) || 1;
+        const SUCTION_SPEED = 6;
+        moveTo(tx + (bdx / bd) * SUCTION_SPEED, ty + (bdy / bd) * SUCTION_SPEED);
+
+        // 바론과 충돌 판정 (60px 이내)
+        if (bd < 60) {
+          // 처치!
+          isSuctioned = false;
+          baronActive = false;
+          teemo.classList.remove('suctioned');
+          document.getElementById('baron').classList.remove('active');
+
+          kills++;
+          combo++;
+          spawnParticles(tx, ty);
+          spawnRing(tx, ty);
+          flashScreen();
+                showBubble('꼴이 좋ㅇㅏ');
+          showBanner('컷');
+          teemo.style.opacity = '0';
+          setTimeout(() => { teemo.style.opacity = '1'; respawn(); }, 900);
+          updateHud();
+        }
+      }
+    }
+
+    requestAnimationFrame(gameLoop);
+  }
+  function navigateTo(url) {
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = url; }, 400);
+  }
+
+
+
+  /* ═══════════════════════════════════
+     슬라이드 패널 & 스킬 시스템
+  ═══════════════════════════════════ */
+
+  let panelOpen = false;
+  function togglePanel() {
+    panelOpen = !panelOpen;
+    document.getElementById('skill-panel').classList.toggle('open', panelOpen);
+    document.getElementById('skill-tab').classList.toggle('open', panelOpen);
+  }
+
+  /* ── 공통 유틸 ── */
+  let bannerTimer = null;
+  function showBanner(text) {
+    const b = document.getElementById('event-banner');
+    b.textContent = text;
+    b.classList.add('show');
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => b.classList.remove('show'), 2400);
+  }
+
+  function startCooldown(cardId, cdId, seconds) {
+    const card = document.getElementById(cardId);
+    const cdEl = document.getElementById(cdId);
+    card.classList.add('cooling');
+    let remain = seconds;
+    cdEl.textContent = remain + 's';
+    const iv = setInterval(() => {
+      remain--;
+      if (remain <= 0) {
+        clearInterval(iv);
+        card.classList.remove('cooling');
+        cdEl.textContent = '';
+      } else {
+        cdEl.textContent = remain + 's';
+      }
+    }, 1000);
+  }
+
+  /* ── 스킬: 바론 밥 주기 ── */
+  let baronActive = false;    // 바론이 필드에 있는 동안 true
+  let baronX = 0, baronY = 0;
+  let isSuctioned = false;    // 티모가 끌려가는 중
+
+  function skillBaron() {
+    const card = document.getElementById('skill-baron');
+    if (card.classList.contains('cooling') || baronActive) return;
+    startCooldown('skill-baron', 'cd-baron', 2);
+    if (panelOpen) togglePanel();
+    showBanner('배고픈 바론, 아무래도 티모를 먹어야할 듯.');
+
+    // 바론 랜덤 위치 (마우스·티모 양쪽 모두에서 멀리)
+    let bx, by, attempts = 0;
+    do {
+      bx = MARGIN + 80 + Math.random() * (W() - MARGIN * 2 - 160);
+      by = MARGIN + 80 + Math.random() * (H() - MARGIN * 2 - 160);
+      attempts++;
+    } while (
+      attempts < 20 &&
+      (dist(bx, by, tx, ty) < 180 || dist(bx, by, mouseX, mouseY) < 180)
+    );
+
+    baronX = bx;
+    baronY = by;
+
+    // 바론 DOM 배치 및 표시
+    const baronEl = document.getElementById('baron');
+    baronEl.style.left = baronX + 'px';
+    baronEl.style.top  = baronY + 'px';
+    baronEl.classList.add('active');
+    baronActive = true;
+
+    // 출현 파동 링 3개
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        const ring = document.createElement('div');
+        ring.className = 'baron-ring';
+        ring.style.left = baronX + 'px';
+        ring.style.top  = baronY + 'px';
+        document.body.appendChild(ring);
+        ring.addEventListener('animationend', () => ring.remove());
+      }, i * 220);
+    }
+    setTimeout(() => {
+      isSuctioned = true;
+      teemo.classList.add('suctioned');
+      showBubble('ㅠㅠㅠㅠ');
+    }, 600);
+  }
+
+  teemo.style.left = tx + 'px';
+  teemo.style.top  = ty + 'px';
+  updateHud();
+  requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>

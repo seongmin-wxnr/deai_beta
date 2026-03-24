@@ -1,0 +1,50 @@
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+        누구냐 너
+    </title>
+
+    <h1>만든 사람 : 홍성민</h1>
+    <h3>연락처 : yuilove9105@gmail.com</h3>
+    <hr>
+
+    <!-- 만든 이유 설명 -->
+    <div>
+      <h3>--------------만든 이유--------------</h3>
+    </div>
+    <hr>
+    <!-- 개발 과정 -->
+    <div class="login-footer">
+      개발 노트 바로가기 -> <a href="#" onclick="navigateTo('https://www.notion.so/Deai-beta-31bc15a10d9780bd963cd8f7b44769b8?pvs=10')">Notion</a>
+    </div>
+    <hr>
+    <!-- 상호작용 버튼 -->
+    <div>
+
+      interaction buttons
+    </div>
+    <div>
+      <button class="nav-link" onclick="navigateTo('/')">돌아가기</button>
+    </div>
+    <div>
+      <button class="nav-link" onclick="navigateTo('/login/')">로그인ㄴ</button>
+    </div>
+    <div>
+      <button class="nav-link" onclick="navigateTo('/register/')">회우 ㅜㄴ가입</button>
+    </div> 
+
+    <div>
+      <button class="nav-link" onclick="navigateTo('')">연락하고 싶으면 1억 내놔 ㅋㅋㅋ</button>
+    </div>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"  rel="stylesheet" />
+  </head>
+
+  <script>
+    function navigateTo(url) {
+      document.body.classList.add('fade-out');
+      setTimeout(() => { window.location.href = url; }, 400);
+    }
+  </script>
+  <body>

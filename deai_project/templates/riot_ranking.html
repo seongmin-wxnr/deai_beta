@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>랭킹 — DEAI × RIOT</title>
+  <link rel="stylesheet" href="{% static 'css/riotInfoPage.css' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── 레이아웃 ── */
+    .rank-wrap {
+      position: relative; z-index: 1;
+      padding: 80px 32px 60px;
+      max-width: 1400px; margin: 0 auto;
+    }
+
+    /* ── 히어로 헤더 ── */
+    .rank-hero {
+      text-align: center;
+      padding: 48px 0 40px;
+      position: relative;
+    }
+    .rank-hero-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 4px;
+      text-transform: uppercase; color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .rank-hero-title {
+      font-size: clamp(32px, 5vw, 52px); font-weight: 700;
+      letter-spacing: 3px; color: var(--text-bright); line-height: 1;
+    }
+    .rank-hero-title span { color: var(--red); }
+
+    /* ── 게임 탭 ── */
+    .rank-game-tabs {
+      display: flex; align-items: center; justify-content: center;
+      gap: 0; margin: 32px 0 0;
+      border: 1px solid var(--border); border-radius: 4px;
+      overflow: hidden; width: fit-content; margin-left: auto; margin-right: auto;
+    }
+    .rank-game-tab {
+      padding: 10px 28px; font-size: 12px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: var(--text-muted); background: var(--bg2);
+      border: none; cursor: pointer; transition: all .18s;
+      border-right: 1px solid var(--border);
+      font-family: var(--font-ui);
+    }
+    .rank-game-tab:last-child { border-right: none; }
+    .rank-game-tab:hover { color: var(--text); background: var(--bg3); }
+    .rank-game-tab.lol.active  { color: var(--lol);  background: var(--lol-dim); }
+    .rank-game-tab.vrt.active  { color: var(--red);  background: var(--red-dim); }
+    .rank-game-tab.tft.active  { color: var(--tft);  background: var(--tft-dim); }
+
+    /* ── 섹션 ── */
+    .rank-section { display: none; }
+    .rank-section.active { display: block; }
+
+    /* ── 서브 컨트롤 바 ── */
+    .rank-controls {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+      padding: 20px 0 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+    }
+    .rank-controls-left { display: flex; align-items: center; gap: 8px; }
+    .rank-controls-right { display: flex; align-items: center; gap: 8px; }
+
+    /* 큐 선택 버튼 */
+    .queue-btn {
+      padding: 7px 18px; font-size: 11px; font-weight: 700;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      background: var(--bg2); border: 1px solid var(--border);
+      color: var(--text-muted); border-radius: 3px;
+      cursor: pointer; transition: all .15s; font-family: var(--font-ui);
+    }
+    .queue-btn:hover { border-color: var(--text-muted); color: var(--text); }
+    .queue-btn.active.lol { color: var(--lol); border-color: var(--lol); background: var(--lol-dim); }
+    .queue-btn.active.vrt { color: var(--red); border-color: var(--red); background: var(--red-dim); }
+    .queue-btn.active.tft { color: var(--tft); border-color: var(--tft); background: var(--tft-dim); }
+
+    /* 티어 선택 */
+    .tier-select {
+      padding: 7px 14px; font-size: 11px; font-weight: 700;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      background: var(--bg2); border: 1px solid var(--border);
+      color: var(--text-muted); border-radius: 3px;
+      cursor: pointer; font-family: var(--font-ui);
+      appearance: none; padding-right: 28px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23605850'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 10px center;
+    }
+    .tier-select:focus { outline: none; }
+
+    /* 총 인원 */
+    .rank-total-badge {
+      font-size: 11px; font-weight: 700; letter-spacing: 1px;
+      color: var(--text-muted); padding: 5px 12px;
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 3px;
+    }
+    .rank-total-badge span { color: var(--text); }
+
+    /* ── 로딩 / 에러 ── */
+    .rank-loading {
+      text-align: center; padding: 60px 20px;
+      color: var(--text-muted); font-size: 13px; letter-spacing: 2px;
+    }
+    .rank-loading::after {
+      content: ''; display: block; width: 32px; height: 2px;
+      background: var(--red); margin: 16px auto 0;
+      animation: loadBar 1s ease-in-out infinite alternate;
+    }
+    @keyframes loadBar { from { transform: scaleX(.2); } to { transform: scaleX(1); } }
+    .rank-error {
+      text-align: center; padding: 40px 20px;
+      color: var(--red); font-size: 13px;
+    }
+
+    /* ── 테이블 ── */
+    .rank-table-wrap {
+      overflow-x: auto;
+    }
+    .rank-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 13px;
+    }
+    .rank-table thead tr {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+    }
+    .rank-table thead th {
+      padding: 11px 14px; text-align: left;
+      font-size: 10px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .rank-table th.center, .rank-table td.center { text-align: center; }
+    .rank-table th.right,  .rank-table td.right  { text-align: right; }
+
+    .rank-table tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,.03);
+      transition: background .12s;
+    }
+    .rank-table tbody tr:hover { background: var(--bg3); }
+
+    /* 상위 3위 강조 */
+    .rank-table tbody tr.top1 { background: rgba(200,155,60,.06); }
+    .rank-table tbody tr.top2 { background: rgba(200,155,60,.04); }
+    .rank-table tbody tr.top3 { background: rgba(200,155,60,.02); }
+    .rank-table tbody tr.top1:hover,
+    .rank-table tbody tr.top2:hover,
+    .rank-table tbody tr.top3:hover { background: rgba(200,155,60,.09); }
+
+    .rank-table td {
+      padding: 12px 14px; color: var(--text);
+      vertical-align: middle; white-space: nowrap;
+    }
+
+    /* 순위 */
+    .rank-num {
+      font-size: 15px; font-weight: 700;
+      color: var(--text-muted); min-width: 36px;
+    }
+    .rank-num.r1 { color: #ffd700; }
+    .rank-num.r2 { color: #c0c0c0; }
+    .rank-num.r3 { color: #cd7f32; }
+
+    /* 소환사명 */
+    .rank-name-cell { display: flex; align-items: center; gap: 8px; }
+    .rank-name {
+      font-size: 14px; font-weight: 700; color: var(--text-bright);
+      letter-spacing: .3px;
+    }
+    .rank-tag { font-size: 11px; color: var(--text-muted); }
+
+    /* 뱃지들 */
+    .rank-badge {
+      display: inline-block; font-size: 9px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase;
+      padding: 2px 6px; border-radius: 2px; vertical-align: middle;
+    }
+    .badge-hot     { background: rgba(255,100,50,.15); color: #ff7040; border: 1px solid rgba(255,100,50,.3); }
+    .badge-vet     { background: rgba(200,155,60,.12); color: var(--gold); border: 1px solid rgba(200,155,60,.3); }
+    .badge-new     { background: rgba(100,200,100,.12); color: #80e880; border: 1px solid rgba(100,200,100,.3); }
+
+    /* 티어 */
+    .rank-tier-lol  { font-weight: 700; color: var(--lol); }
+    .rank-tier-tft  { font-weight: 700; color: var(--tft); }
+    .rank-tier-vrt  { font-weight: 700; color: var(--red); }
+
+    /* LP */
+    .rank-lp {
+      font-size: 14px; font-weight: 700; color: var(--text-bright);
+    }
+    .rank-lp-unit { font-size: 11px; color: var(--text-muted); margin-left: 2px; }
+
+    /* 승/패/승률 */
+    .rank-wins   { color: #80c880; font-weight: 700; }
+    .rank-losses { color: var(--red-light); font-weight: 700; }
+    .rank-wr-bar-wrap {
+      display: flex; align-items: center; gap: 8px;
+      min-width: 120px;
+    }
+    .rank-wr-bar {
+      flex: 1; height: 4px; background: var(--bg4);
+      border-radius: 2px; overflow: hidden;
+    }
+    .rank-wr-fill {
+      height: 100%; border-radius: 2px;
+      transition: width .3s;
+    }
+    .rank-wr-text {
+      font-size: 12px; font-weight: 700; min-width: 36px; text-align: right;
+    }
+
+    /* ── VALORANT 랭크 뱃지 ── */
+    .val-tier-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 700;
+    }
+    .val-tier-radiant { color: #ffe066; }
+    .val-tier-immortal { color: #ff5050; }
+
+    /* ── 섹션 타이틀 ── */
+    .rank-section-header {
+      display: flex; align-items: baseline; gap: 12px;
+      padding: 24px 0 4px;
+    }
+    .rank-section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 3px;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+    .rank-section-title {
+      font-size: 22px; font-weight: 700; color: var(--text-bright);
+      letter-spacing: 1px;
+    }
+
+    /* ── 프로필 아이콘 ── */
+    .rank-profile-icon {
+      width: 36px; height: 36px; border-radius: 4px;
+      overflow: hidden; flex-shrink: 0;
+      border: 1px solid var(--border); background: var(--bg3);
+    }
+    .rank-profile-icon img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    /* 닉네임 링크 */
+    .rank-name-link {
+      text-decoration: none; color: inherit;
+      transition: color .15s;
+    }
+    .rank-name-link:hover .rank-name { color: var(--red-light); }
+    .rank-name-link:hover .rank-tag  { color: var(--text-sub); }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── 스크롤 마커 ── */
+    .rank-scroll-hint {
+      text-align: center; padding: 20px;
+      font-size: 11px; color: var(--text-muted); letter-spacing: 2px;
+    }
+
+    /* ── 레벨 ── */
+    .rank-level {
+      font-size: 11px; font-weight: 700; letter-spacing: .5px;
+      color: var(--text-muted);
+    }
+
+    /* ── 챔피언 초상화 TOP3 ── */
+    .champ-portraits {
+      display: flex; align-items: center; gap: 4px;
+      min-height: 34px;
+    }
+    .champ-portrait {
+      width: 34px; height: 34px;
+      border-radius: 4px; overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--bg3); flex-shrink: 0;
+    }
+    .champ-portrait img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .rank-loading-dots {
+      color: var(--text-muted); font-size: 13px; letter-spacing: 3px;
+    }
+
+
+    /* ── 게임별 배경 ── */
+    .rank-bg {
+      position: fixed; inset: 0; z-index: 0;
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      /* 배경 교체 시 부드럽게 */
+      transition: background-color .5s ease, background-image .5s ease, opacity .25s ease;
+    }
+    /* 하단 페이드 + 상단 어둠 */
+    .rank-bg::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,.60) 0%,
+        rgba(0,0,0,.30) 35%,
+        rgba(0,0,0,.70) 100%
+      );
+      z-index: 1;
+    }
+    /* 광원 glow 효과 */
+    .rank-bg::after {
+      content: '';
+      position: absolute; inset: 0;
+      opacity: .18;
+      transition: opacity .5s ease;
+      z-index: 2;
+    }
+    body { background: transparent !important; }
+
+    /* ── LoL: 파란 빛, 왕좌의 분위기 ── */
+    .rank-bg.bg-lol {
+      background-color: #06091a;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(20,80,180,.35) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 20% 60%, rgba(10,50,140,.20) 0%, transparent 60%),
+        linear-gradient(175deg, #0a1228 0%, #060c1e 50%, #040810 100%);
+    }
+    .rank-bg.bg-lol::after {
+      background:
+        radial-gradient(ellipse 40% 30% at 75% 25%, rgba(80,160,255,.12) 0%, transparent 60%);
+    }
+
+    /* ── Valorant: 붉은 날카로운 에너지 ── */
+    .rank-bg.bg-vrt {
+      background-color: #0d0508;
+      background-image:
+        radial-gradient(ellipse 70% 50% at 50% 0%, rgba(180,20,40,.30) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 80% 70%, rgba(120,10,30,.18) 0%, transparent 60%),
+        linear-gradient(175deg, #180a0e 0%, #0f0608 50%, #080408 100%);
+    }
+    .rank-bg.bg-vrt::after {
+      background:
+        radial-gradient(ellipse 35% 25% at 25% 30%, rgba(255,60,80,.10) 0%, transparent 60%);
+    }
+
+    /* ── TFT: 보랏빛 마법 판타지 ── */
+    .rank-bg.bg-tft {
+      background-color: #080612;
+      background-image:
+        radial-gradient(ellipse 75% 55% at 50% 0%, rgba(100,40,180,.32) 0%, transparent 70%),
+        radial-gradient(ellipse 45% 35% at 15% 55%, rgba(60,20,120,.20) 0%, transparent 60%),
+        linear-gradient(175deg, #120e28 0%, #0a0818 50%, #060510 100%);
+    }
+    .rank-bg.bg-tft::after {
+      background:
+        radial-gradient(ellipse 38% 28% at 80% 20%, rgba(160,80,255,.10) 0%, transparent 60%);
+    }
+
+    @media (max-width: 768px) {
+      .rank-wrap { padding: 72px 16px 40px; }
+      .rank-game-tab { padding: 8px 16px; font-size: 11px; }
+      .rank-table td, .rank-table th { padding: 10px 8px; }
+
+      .rank-wr-bar-wrap { min-width: 80px; }
+      .rank-controls { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ 배경 레이어 ═══ -->
+<div class="rank-bg" id="rankBg"></div>
+
+<!-- ═══ NAV ═══ -->
+<nav class="nav">
+  <a class="nav-logo" href="/Deai_main/">
+    <span class="nav-logo-text">DEAI</span>
+    <span class="nav-logo-sep">×</span>
+    <span class="nav-logo-sub">RIOT</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="/RiotInfo/">정보</a>
+    <a class="nav-link active" href="#">랭킹</a>
+    <button class="nav-back" onclick="location.href='/RiotSearch/'">검색으로</button>
+    <button class="nav-back" onclick="location.href='/Deai_main/'">메인으로</button>
+    <button class="nav-back" onclick="location.href='/DestroyTeemo/'">티모 없애기</button>
+  </div>
+</nav>
+
+<!-- ═══ WRAP ═══ -->
+<div class="rank-wrap">
+
+  <!-- 히어로 -->
+  <div class="rank-hero">
+    <div class="rank-hero-label">LIVE LEADERBOARD</div>
+    <div class="rank-hero-title">RIOT <span>RANKING</span></div>
+
+    <!-- 게임 탭 -->
+    <div class="rank-game-tabs">
+      <button class="rank-game-tab lol active" onclick="switchGame('lol', this)">LEAGUE OF LEGENDS</button>
+      <button class="rank-game-tab vrt" onclick="switchGame('vrt', this)" style="opacity:.45;cursor:not-allowed;" title="파트너 API 승인 후 지원 예정">VALORANT</button>
+      <button class="rank-game-tab tft" onclick="switchGame('tft', this)">TFT</button>
+    </div>
+  </div>
+  <div class="rank-section active" id="rank-lol">
+    <div class="rank-section-header">
+      <div class="rank-section-label">LEAGUE OF LEGENDS</div>
+      <div class="rank-section-title">솔로/자유 랭크 순위</div>
+    </div>
+
+    <div class="rank-controls">
+      <div class="rank-controls-left">
+        <!-- 큐 선택 -->
+        <button class="queue-btn lol active" onclick="lolSetQueue('RANKED_SOLO_5x5', this)">솔로랭크</button>
+        <button class="queue-btn lol"        onclick="lolSetQueue('RANKED_FLEX_SR',   this)">자유랭크</button>
+      </div>
+      <div class="rank-controls-right">
+        <div class="rank-total-badge" id="lol-total-badge">총 <span>—</span>명</div>
+      </div>
+    </div>
+
+    <div class="rank-table-wrap">
+      <div id="lol-grid"><div class="rank-loading">순위 불러오는 중</div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ VALORANT 섹션 ══════════════ -->
+  <div class="rank-section" id="rank-vrt">
+    <div class="rank-section-header">
+      <div class="rank-section-label">VALORANT</div>
+      <div class="rank-section-title">경쟁전 순위</div>
+    </div>
+    <div style="padding:60px 20px;text-align:center;border:1px solid var(--border);border-radius:4px;margin-top:16px;">
+      <div style="font-size:32px;margin-bottom:16px;">🔒</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text-bright);margin-bottom:8px;">파트너 API 승인 필요</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.8;">
+        VALORANT 랭킹 API는 Riot Games 공식 파트너에게만 제공됩니다.<br>
+        파트너 승인 후 해당 기능이 활성화됩니다.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ TFT 섹션 ══════════════ -->
+  <div class="rank-section" id="rank-tft">
+    <div class="rank-section-header">
+      <div class="rank-section-label">TEAMFIGHT TACTICS</div>
+      <div class="rank-section-title">솔로 / 더블업 순위</div>
+    </div>
+
+    <div class="rank-controls">
+      <div class="rank-controls-left">
+        <button class="queue-btn tft active" onclick="tftSetQueue('RANKED_TFT',          this)">솔로랭크</button>
+        <button class="queue-btn tft"        onclick="tftSetQueue('RANKED_TFT_DOUBLE_UP', this)">더블업</button>
+      </div>
+      <div class="rank-controls-right">
+        <div class="rank-total-badge" id="tft-total-badge">총 <span>—</span>명</div>
+      </div>
+    </div>
+
+    <div class="rank-table-wrap">
+      <div id="tft-grid"><div class="rank-loading">순위 불러오는 중</div></div>
+    </div>
+  </div>
+
+</div><!-- /rank-wrap -->
+
+<script>
+// ══════════════════════════════════════════
+// 상태
+// ══════════════════════════════════════════
+let _curGame  = 'lol';
+let _lolQueue = 'RANKED_SOLO_5x5';
+let _tftQueue = 'RANKED_TFT';
+
+// API 응답 데이터 캐시
+const _cache = { lol: {}, tft: {} };
+
+// ══════════════════════════════════════════
+// 게임 탭 전환
+// ══════════════════════════════════════════
+function switchGame(game, el) {
+  _curGame = game;
+  document.querySelectorAll('.rank-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.rank-game-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('rank-' + game).classList.add('active');
+  el.classList.add('active');
+
+  // 배경 전환 — fade out → class 교체 → fade in
+  const bg = document.getElementById('rankBg');
+  bg.style.opacity = '0';
+  setTimeout(() => {
+    bg.className = 'rank-bg bg-' + game;
+    bg.style.opacity = '1';
+  }, 250);
+
+  if (game === 'lol') loadLol();
+  if (game === 'tft') loadTft();
+}
+
+// ══════════════════════════════════════════
+// LOL — 큐 변경 (티어 셀렉트 없음)
+// ══════════════════════════════════════════
+function lolSetQueue(q, btn) {
+  _lolQueue = q;
+  document.querySelectorAll('#rank-lol .queue-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadLol();
+}
+
+async function loadLol() {
+  const key  = _lolQueue;
+  const grid = document.getElementById('lol-grid');
+
+  if (_cache.lol[key]) {
+    const data = _cache.lol[key];
+    document.getElementById('lol-total-badge').innerHTML = `총 <span>${data.total.toLocaleString()}</span>명`;
+    grid.innerHTML = renderTable(data.entries, 'lol');
+    return;
+  }
+
+  grid.innerHTML = '<div class="rank-loading">순위 불러오는 중</div>';
+  document.getElementById('lol-total-badge').innerHTML = '총 <span>—</span>명';
+
+  try {
+    const res  = await fetch(`/api/ranking/lol/?queue=${_lolQueue}&tier=all`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || '데이터 오류');
+    _cache.lol[key] = data;
+    document.getElementById('lol-total-badge').innerHTML = `총 <span>${data.total.toLocaleString()}</span>명`;
+    grid.innerHTML = renderTable(data.entries, 'lol');
+  } catch(e) {
+    grid.innerHTML = `<div class="rank-error">⚠ ${e.message}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════
+// TFT — 큐 변경 (티어 셀렉트 없음)
+// ══════════════════════════════════════════
+function tftSetQueue(q, btn) {
+  _tftQueue = q;
+  document.querySelectorAll('#rank-tft .queue-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadTft();
+}
+
+async function loadTft() {
+  const key  = _tftQueue;
+  const grid = document.getElementById('tft-grid');
+
+  if (_cache.tft[key]) {
+    const data = _cache.tft[key];
+    document.getElementById('tft-total-badge').innerHTML = `총 <span>${data.total.toLocaleString()}</span>명`;
+    grid.innerHTML = renderTable(data.entries, 'tft');
+    return;
+  }
+
+  grid.innerHTML = '<div class="rank-loading">순위 불러오는 중</div>';
+  document.getElementById('tft-total-badge').innerHTML = '총 <span>—</span>명';
+
+  try {
+    const res  = await fetch(`/api/ranking/tft/?queue=${_tftQueue}&tier=all`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || '데이터 오류');
+    _cache.tft[key] = data;
+    document.getElementById('tft-total-badge').innerHTML = `총 <span>${data.total.toLocaleString()}</span>명`;
+    grid.innerHTML = renderTable(data.entries, 'tft');
+  } catch(e) {
+    grid.innerHTML = `<div class="rank-error">⚠ ${e.message}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════
+// DataDragon 버전
+// ══════════════════════════════════════════
+const DD_BASE = 'https://ddragon.leagueoflegends.com/cdn';
+let _ddVer = '15.10.1';
+
+(async () => {
+  try {
+    const res = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
+    const arr = await res.json();
+    if (arr && arr[0]) _ddVer = arr[0];
+  } catch(e) {}
+})();
+
+function iconUrl(iconId) { return `${DD_BASE}/${_ddVer}/img/profileicon/${iconId || 1}.png`; }
+function champUrl(key)   { return `${DD_BASE}/${_ddVer}/img/champion/${key}.png`; }
+function rankNumClass(r) { return r === 1 ? 'r1' : r === 2 ? 'r2' : r === 3 ? 'r3' : ''; }
+
+// ══════════════════════════════════════════
+// 모스트 챔피언 TOP3 비동기 조회
+// ══════════════════════════════════════════
+const _masteryCache = {};
+
+async function loadMastery(puuid, cellId) {
+  if (!puuid) return;
+  if (_masteryCache[puuid] !== undefined) {
+    const cell = document.getElementById(cellId);
+    if (cell) cell.innerHTML = renderChamps(_masteryCache[puuid]);
+    return;
+  }
+  try {
+    const res  = await fetch(`/api/ranking/mastery/?puuid=${encodeURIComponent(puuid)}&game=lol`);
+    const data = await res.json();
+    if (data.success) {
+      // unavailable=true → 개발자 키 제한, 셀을 '—'으로 조용히 처리
+      const champs = data.unavailable ? [] : (data.champions || []);
+      _masteryCache[puuid] = champs;
+      const cell = document.getElementById(cellId);
+      if (cell) cell.innerHTML = renderChamps(champs);
+    }
+  } catch(e) {
+    // 네트워크 오류 시 로딩 표시 제거
+    const cell = document.getElementById(cellId);
+    if (cell) cell.innerHTML = '<span style="color:var(--text-muted);font-size:11px;">—</span>';
+  }
+}
+
+function renderChamps(champs) {
+  if (!champs || !champs.length)
+    return '<span style="color:var(--text-muted);font-size:11px;">—</span>';
+  return champs.map(c => `
+    <div class="champ-portrait" title="${c.championKey || ''}">
+      <img src="${champUrl(c.championKey)}" alt="${c.championKey}"
+           onerror="this.parentElement.style.display='none'"/>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// 공통 테이블 렌더러
+// 컬럼: # / 레벨 / 프로필+닉네임#태그 / 모스트(LoL만) / LP / 티어
+// ══════════════════════════════════════════
+function renderTable(entries, game) {
+  if (!entries || !entries.length)
+    return '<div class="rank-error">데이터가 없습니다.</div>';
+
+  const isVrt  = game === 'vrt';
+  const isTft  = game === 'tft';
+  const tierCls = `rank-tier-${game}`;
+  const masteryQueue = [];
+
+  const rows = entries.map((e, idx) => {
+    const topClass = e.rank === 1 ? 'top1' : e.rank === 2 ? 'top2' : e.rank === 3 ? 'top3' : '';
+    const numCls   = rankNumClass(e.rank);
+    const cellId   = `mastery-${game}-${idx}`;
+
+    const iconHtml = `<div class="rank-profile-icon">
+      <img src="${iconUrl(e.iconId || 1)}" alt="icon" onerror="this.src='${iconUrl(1)}'"/></div>`;
+
+    const levelHtml = `<span class="rank-level">Lv.${e.level || 1}</span>`;
+
+    const tagHtml = e.tagLine ? `<span class="rank-tag">#${e.tagLine}</span>` : '';
+    const badges  = [
+      e.hotStreak  ? '<span class="rank-badge badge-hot">연승</span>'  : '',
+      e.veteran    ? '<span class="rank-badge badge-vet">베테랑</span>' : '',
+      e.freshBlood ? '<span class="rank-badge badge-new">신규</span>'  : '',
+    ].join('');
+
+    const searchUrl = isVrt
+      ? `/RiotSearch/`
+      : `/riot/${game}/user/?name=${encodeURIComponent(e.name)}&tag=${encodeURIComponent(e.tagLine)}&region=kr&puuid=${e.puuid || ''}&iconId=${e.iconId || 1}&level=${e.level || 1}`;
+
+    const nameCell = `<div class="rank-name-cell">
+      <a class="rank-name-link" href="${searchUrl}" target="_blank">
+        <span class="rank-name">${e.name}</span>${tagHtml}
+      </a><div>${badges}</div></div>`;
+
+    const masteryCell = isTft ? '' : `<td>
+      <div class="champ-portraits" id="${cellId}">
+        <span class="rank-loading-dots">···</span>
+      </div></td>`;
+
+    if (!isTft && e.puuid) masteryQueue.push({ puuid: e.puuid, cellId });
+
+    return `<tr class="${topClass}">
+      <td><span class="rank-num ${numCls}">${e.rank}</span></td>
+      <td class="center">${levelHtml}</td>
+      <td><div style="display:flex;align-items:center;gap:10px;">${iconHtml}${nameCell}</div></td>
+      ${masteryCell}
+      <td class="right"><span class="rank-lp">${(e.lp || 0).toLocaleString()}</span><span class="rank-lp-unit">LP</span></td>
+      <td><span class="${tierCls}">${e.rankLabel || '챌린저'}</span></td>
+    </tr>`;
+  }).join('');
+
+  const masteryHeader = isTft ? '' : '<th>모스트 TOP3</th>';
+
+  const html = `<table class="rank-table">
+    <thead><tr>
+      <th style="width:44px;">#</th>
+      <th class="center" style="width:60px;">레벨</th>
+      <th>닉네임</th>
+      ${masteryHeader}
+      <th class="right">점수</th>
+      <th>티어</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+
+  if (!isTft) {
+    requestAnimationFrame(() => {
+      masteryQueue.slice(0, 50).forEach(({ puuid, cellId }) => loadMastery(puuid, cellId));
+    });
+  }
+  return html;
+}
+
+// ══════════════════════════════════════════
+// 초기 로드
+// ══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('rankBg').className = 'rank-bg bg-lol';
+  loadLol();
+});
+</script>
+</body>
+</html>

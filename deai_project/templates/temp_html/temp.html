@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="page-title">소환사 정보 — Deai × LoL</title>
+  <link rel="stylesheet" href="{% static 'css/riot_lol.css' %}">
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="/Deai_main/">
+    <span class="nav-logo-text">DEAI</span>
+    <span class="nav-logo-sep">×</span>
+    <span class="nav-logo-sub">League of Legends</span>
+  </a>
+  <button class="nav-back" onclick="navigateTo('/RiotSearch/')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+    </svg>
+    검색으로
+  </button>
+</nav>
+
+<div class="page-wrapper">
+  <div class="userpage-wrap">
+
+    <!-- 왼쪽 사이드바 -->
+    <aside class="sidebar">
+      <div class="card profile-card anim-1" id="profile-card">
+        <div class="state-box"><div class="spinner"></div><span class="msg">프로필 로딩 중...</span></div>
+      </div>
+      <div class="card tier-card anim-2" id="tier-card-solo">
+        <div class="tier-card-header">개인/2인 랭크</div>
+        <div class="state-box" style="padding:24px;"><div class="spinner"></div></div>
+      </div>
+      <div class="card tier-card anim-3" id="tier-card-flex">
+        <div class="tier-card-header">자유 랭크</div>
+        <div class="state-box" style="padding:24px;"><div class="spinner"></div></div>
+      </div>
+      <div class="card mastery-card anim-4" id="mastery-card">
+        <div class="tier-card-header">챔피언 숙련도 TOP 5</div>
+        <div class="state-box" style="padding:24px;"><div class="spinner"></div></div>
+      </div>
+    </aside>
+
+    <!-- 오른쪽 메인 -->
+    <main class="main-content">
+      <div class="card anim-2" id="stats-bar-wrap" style="display:none;">
+        <div class="stats-bar">
+          <div class="stats-bar-item"><div class="stat-value" id="stat-games">—</div><div class="stat-label">최근 게임</div></div>
+          <div class="stats-bar-item"><div class="stat-value" id="stat-wr" style="color:var(--tier-emerald)">—</div><div class="stat-label">승률</div></div>
+          <div class="stats-bar-item"><div class="stat-value" id="stat-kda">—</div><div class="stat-label">평균 KDA</div></div>
+          <div class="stats-bar-item"><div class="stat-value" id="stat-cs">—</div><div class="stat-label">평균 CS/분</div></div>
+        </div>
+      </div>
+
+      <div class="card anim-3">
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchTab('matches',this)">전적</button>
+          <button class="tab-btn" onclick="switchTab('champions',this)">챔피언 통계</button>
+        </div>
+        <div class="tab-content active" id="tab-matches" style="padding:16px;">
+          <div class="match-list" id="match-list">
+            <div class="state-box"><div class="spinner"></div><span class="msg">전적 불러오는 중...</span></div>
+          </div>
+          <div style="text-align:center;margin-top:16px;display:none;" id="load-more-wrap">
+            <button class="btn btn-outline" onclick="loadMoreMatches()" id="load-more-btn">더 보기</button>
+          </div>
+        </div>
+        <div class="tab-content" id="tab-champions" style="padding:16px;">
+          <div id="champ-stats-wrap">
+            <div class="state-box"><div class="spinner"></div><span class="msg">집계 중...</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   유저 페이지 JS
+   - 모든 Riot API 호출은 /api/riot/... Django 프록시 사용
+   - DD_VERSION은 서버에서 주입 ({{ DD_VERSION }} 템플릿 변수)
+═══════════════════════════════════════════════════════ */
+
+// Django 템플릿에서 주입되는 Data Dragon 버전
+// views.py의 render() context에서 dd_version을 전달합니다
+const DD_VERSION = '{{ DD_VERSION }}';
+const DD_IMG     = `https://ddragon.leagueoflegends.com/cdn/${DD_VERSION}/img`;
+
+const QUEUE_MAP = {
+  420:'솔로랭크', 440:'자유랭크', 450:'ARAM',
+  400:'일반(드래프트)', 430:'일반', 900:'URF',
+  1700:'아레나', 1900:'URF',
+};
+
+// 전역 상태
+let S = {
+  puuid:'', summonerId:'', region:'kr',
+  gameName:'', tagLine:'', iconId:1, level:1,
+  matchData:[], matchStart:0,
+  champData:{},
+  champMap:null, spellMap:null,
+};
+
+/* ─── URL 파라미터 파싱 ─── */
+function parseParams() {
+  const p = new URLSearchParams(location.search);
+  S.gameName = p.get('name')|| '';
+  S.tagLine= p.get('tag') || '';
+  S.region = p.get('region')|| 'kr';
+  S.puuid = p.get('puuid') || '';
+  S.summonerId = p.get('summonerId') || '';
+  S.iconId = parseInt(p.get('iconId'))  || 1;
+  S.level = parseInt(p.get('level'))   || 1;
+  document.title = `${S.gameName} #${S.tagLine} — Deai × LoL`;
+}
+
+/* ─── Django 프록시 호출 헬퍼 ─── */
+async function riotAPI(path) {
+  const res  = await fetch(path);
+  const data = await res.json();
+  return data;
+}
+
+/* ─── Data Dragon 데이터 로드 (Django 프록시 경유) ─── */
+async function getChampMap() {
+  if (S.champMap) return S.champMap;
+  // /api/riot/champions/ → Django가 Data Dragon 호출 후 {champions: {id: {name, id}}} 반환
+  const data = await riotAPI('/api/riot/champions/?lang=ko_KR');
+  S.champMap = data.success ? data.champions : {};
+  return S.champMap;
+}
+
+async function getSpellMap() {
+  if (S.spellMap) return S.spellMap;
+  // Data Dragon 소환사 주문은 Django 프록시 미구현 → 직접 호출 (외부 CDN, API 키 불필요)
+  const res  = await fetch(`/api/riot/dd-spell/?lang=ko_KR`);
+  const data = await res.json();
+  S.spellMap = {};
+  const spellData = data.data || data;
+  Object.values(spellData).forEach(s => { S.spellMap[parseInt(s.key)] = s.id; });
+  return S.spellMap;
+}
+
+/* ─── 프로필 카드 ─── */
+function renderProfile() {
+  const iconUrl = `${DD_IMG}/profileicon/${S.iconId}.png`;
+  document.getElementById('profile-card').innerHTML = `
+    <div class="profile-backdrop"></div>
+    <div class="profile-icon-wrap" style="text-align:center;">
+      <div class="profile-icon" style="margin:0 auto;">
+        <img src="${iconUrl}" onerror="this.src='${DD_IMG}/profileicon/1.png'" alt="아이콘"/>
+      </div>
+      <div class="profile-level-badge">Lv. ${S.level}</div>
+    </div>
+    <div class="profile-name-area" style="text-align:center;margin-top:18px;">
+      <div class="profile-gamename">${esc(S.gameName)}</div>
+      <div class="profile-tagline">#${esc(S.tagLine)}</div>
+      <div style="margin-top:8px;">
+        <span class="badge" style="color:var(--blue);border-color:var(--border-blue);background:rgba(11,196,227,0.08);">
+          ${S.region.toUpperCase()}
+        </span>
+      </div>
+    </div>
+    <div class="divider-gold" style="margin-top:20px;"><span>INFO</span></div>
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <a href="https://www.op.gg/summoners/${S.region}/${encodeURIComponent(S.gameName)}-${encodeURIComponent(S.tagLine)}"
+         target="_blank" rel="noopener" class="btn btn-outline" style="font-size:12px;padding:6px 14px;">OP.GG ↗</a>
+      <a href="https://u.gg/lol/profile/${S.region}1/${encodeURIComponent(S.gameName)}-${encodeURIComponent(S.tagLine)}"
+         target="_blank" rel="noopener" class="btn btn-outline" style="font-size:12px;padding:6px 14px;">U.GG ↗</a>
+    </div>
+  `;
+}
+
+/* ─── 티어 카드 ─── */
+async function loadLeague() {
+  const data = await riotAPI(`/api/riot/rank/?region=${S.region}&summonerId=${encodeURIComponent(S.summonerId)}&puuid=${encodeURIComponent(S.puuid)}`);
+  if (!data.success) { renderTierCard('tier-card-solo','개인/2인 랭크',null); renderTierCard('tier-card-flex','자유 랭크',null); return; }
+  renderTierCard('tier-card-solo', '개인/2인 랭크', data.solo);
+  renderTierCard('tier-card-flex', '자유 랭크',     data.flex);
+}
+
+function tierEmblemUrl(t) {
+  // CommunityDragon CDN - 브라우저 직접 접근 허용
+  // ddragon ranked-emblems는 버전 포함/미포함 모두 403 차단
+  const map = {
+    IRON:'iron', BRONZE:'bronze', SILVER:'silver', GOLD:'gold',
+    PLATINUM:'platinum', EMERALD:'emerald', DIAMOND:'diamond',
+    MASTER:'master', GRANDMASTER:'grandmaster', CHALLENGER:'challenger'
+  };
+  const name = map[t];
+  if (!name) return '';
+  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblems/emblem-${name}.png`;
+}
+function tierEmblemFallback(img) {
+  // emblem- 경로 실패시 mini-crests로 fallback
+  const name = img.src.split('emblem-').pop().replace('.png','');
+  img.onerror = null;
+  img.src = `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-mini-crests/${name}.png`;
+}
+
+function renderTierCard(id, label, d) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<div class="tier-card-header">${label}</div>`;
+  if (!d) {
+    el.innerHTML += `<div class="state-box" style="padding:20px;"><span class="icon">🎯</span><span class="msg">배치 미완료</span><span class="sub">이번 시즌 배치를 완료해주세요</span></div>`;
+    return;
+  }
+  const wr = Math.round(d.wins / (d.wins + d.losses) * 100);
+  el.innerHTML += `
+    <div class="tier-main">
+      <div class="tier-emblem">
+        <img src="${tierEmblemUrl(d.tier)}" alt="${d.tier}" onerror="tierEmblemFallback(this)"/>
+      </div>
+      <div class="tier-info">
+        <div class="tier-name tier-${d.tier}">${d.tier}</div>
+        <div class="tier-division">${d.rank}</div>
+        <div class="tier-lp">${d.leaguePoints.toLocaleString()} <span>LP</span></div>
+      </div>
+    </div>
+    <div class="tier-stats-row">
+      <div class="tier-stat"><div class="val">${d.wins+d.losses}</div><div class="lbl">게임</div></div>
+      <div class="tier-stat"><div class="val" style="color:${wr>=55?'var(--tier-emerald)':wr<=45?'#f87171':'var(--text-bright)'}">${wr}%</div><div class="lbl">승률</div></div>
+      <div class="tier-stat"><div class="val" style="color:var(--blue)">${d.wins}W</div><div class="lbl">승리</div></div>
+      <div class="tier-stat"><div class="val" style="color:#ef5350">${d.losses}L</div><div class="lbl">패배</div></div>
+    </div>
+    ${d.hotStreak ? '<div style="text-align:center;font-family:var(--font-ui);font-size:11px;color:var(--tier-gold);margin-top:10px;">🔥 Hot Streak</div>' : ''}
+    ${d.miniSeries ? renderPromo(d.miniSeries) : ''}
+  `;
+}
+
+function renderPromo(ms) {
+  const dots = ms.progress.split('').map(c =>
+    `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid var(--gold);background:${c==='W'?'var(--gold)':c==='L'?'var(--red)':'transparent'};margin:0 2px;"></span>`
+  ).join('');
+  return `<div style="margin-top:12px;text-align:center;font-family:var(--font-ui);font-size:11px;color:var(--text-muted);">승급전 &nbsp;${dots}</div>`;
+}
+
+/* ─── 챔피언 숙련도 ─── */
+async function loadMastery() {
+  const [data, champMap] = await Promise.all([
+    riotAPI(`/api/riot/mastery/?region=${S.region}&puuid=${encodeURIComponent(S.puuid)}&count=5`),
+    getChampMap(),
+  ]);
+  const el = document.getElementById('mastery-card');
+  el.innerHTML = '<div class="tier-card-header">챔피언 숙련도 TOP 5</div>';
+
+  if (!data.success) {
+    el.innerHTML += '<div class="state-box"><span class="msg">불러올 수 없음</span></div>';
+    return;
+  }
+
+  const rankColors = ['#f4c874','#d4d4d4','#cd7f32','var(--text-muted)','var(--text-muted)'];
+  const rankClasses = ['top1','top2','top3','',''];
+
+  data.masteries.forEach((m, i) => {
+    const champ = champMap[m.championId] || {name:'???', id:'Aatrox'};
+    el.innerHTML += `
+      <div class="mastery-item">
+        <span class="mastery-rank ${rankClasses[i]}">${i+1}</span>
+        <div class="mastery-champ-icon">
+          <img src="${DD_IMG}/champion/${champ.id}.png" onerror="this.style.display='none'" alt="${esc(champ.name)}"/>
+        </div>
+        <div class="mastery-info">
+          <div class="mastery-champ-name">${esc(champ.name)}</div>
+          <div class="mastery-pts">${fmtNum(m.championPoints)} pts</div>
+        </div>
+        <div class="mastery-level">
+          <span class="mastery-lvl-badge" style="background:rgba(0,0,0,0.3);border:1px solid ${rankColors[i]};color:${rankColors[i]};">
+            Lv.${m.championLevel}
+          </span>
+        </div>
+      </div>`;
+  });
+}
+
+/* ─── 매치 목록 ─── */
+const PAGE_SIZE = 10;
+
+async function loadMatches(start=0) {
+  return riotAPI(`/api/riot/matches/?region=${S.region}&puuid=${encodeURIComponent(S.puuid)}&start=${start}&count=${PAGE_SIZE}`);
+}
+
+async function loadMatchDetail(matchId) {
+  return riotAPI(`/api/riot/match/${encodeURIComponent(matchId)}/?region=${S.region}`);
+}
+
+async function initMatches() {
+  const ml = document.getElementById('match-list');
+  const [idsData, champMap, spellMap] = await Promise.all([loadMatches(0), getChampMap(), getSpellMap()]);
+
+  if (!idsData.success || !idsData.matchIds?.length) {
+    ml.innerHTML = '<div class="state-box"><span class="icon">🎮</span><span class="msg">최근 게임 없음</span></div>';
+    return;
+  }
+
+  ml.innerHTML = '';
+  const details = await Promise.allSettled(idsData.matchIds.map(id => loadMatchDetail(id)));
+  details.forEach(r => {
+    if (r.status === 'fulfilled' && r.value.success) {
+      const card = buildMatchCard(r.value.match, champMap, spellMap);
+      if (card) { ml.appendChild(card); S.matchData.push(r.value.match); accumChamp(r.value.match, champMap); }
+    }
+  });
+
+  S.matchStart = PAGE_SIZE;
+  if (idsData.matchIds.length === PAGE_SIZE) document.getElementById('load-more-wrap').style.display = 'block';
+  updateStatsBar();
+  renderChampStats();
+}
+
+async function loadMoreMatches() {
+  const btn = document.getElementById('load-more-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;"></div>';
+  const [idsData, champMap, spellMap] = await Promise.all([loadMatches(S.matchStart), getChampMap(), getSpellMap()]);
+  if (idsData.success) {
+    const ml = document.getElementById('match-list');
+    const details = await Promise.allSettled(idsData.matchIds.map(id => loadMatchDetail(id)));
+    details.forEach(r => {
+      if (r.status === 'fulfilled' && r.value.success) {
+        const card = buildMatchCard(r.value.match, champMap, spellMap);
+        if (card) { ml.appendChild(card); S.matchData.push(r.value.match); accumChamp(r.value.match, champMap); }
+      }
+    });
+    S.matchStart += PAGE_SIZE;
+    updateStatsBar(); renderChampStats();
+    if (idsData.matchIds.length < PAGE_SIZE) document.getElementById('load-more-wrap').style.display = 'none';
+  }
+  btn.disabled = false; btn.innerHTML = '더 보기';
+}
+
+function buildMatchCard(match, champMap, spellMap) {
+  const info = match?.info;
+  if (!info) return null;
+  const me = info.participants?.find(p => p.puuid === S.puuid);
+  if (!me) return null;
+
+  const isWin = me.win;
+  const champ = champMap[me.championId] || {name:'???', id:'Aatrox'};
+  const spell1 = spellMap[me.summoner1Id]||'';
+  const spell2 = spellMap[me.summoner2Id]||'';
+  const cs     = me.totalMinionsKilled + me.neutralMinionsKilled;
+  const csMin  = (cs / (info.gameDuration/60)).toFixed(1);
+  const kda    = me.deaths===0 ? 'Perfect' : ((me.kills+me.assists)/me.deaths).toFixed(2);
+  const kdaClass = me.deaths===0?'kda-perfect':parseFloat(kda)>=4?'kda-great':parseFloat(kda)>=2.5?'kda-good':'';
+  const queue  = QUEUE_MAP[info.queueId]||'기타';
+  const dur    = `${Math.floor(info.gameDuration/60)}:${String(info.gameDuration%60).padStart(2,'0')}`;
+  const timeAgo = timeSince(info.gameEndTimestamp/1000);
+
+  const items  = [me.item0,me.item1,me.item2,me.item3,me.item4,me.item5,me.item6];
+  const itemsTopHtml    = items.slice(0,4).map(id => id?`<div class="match-item"><img src="${DD_IMG}/item/${id}.png" loading="lazy"/></div>`:`<div class="match-item empty"></div>`).join('');
+  const itemsBottomHtml = items.slice(4).map(id => id?`<div class="match-item"><img src="${DD_IMG}/item/${id}.png" loading="lazy"/></div>`:`<div class="match-item empty"></div>`).join('');
+
+  const div = document.createElement('div');
+  div.className = `match-card ${isWin?'win':'lose'}`;
+  div.innerHTML = `
+    <div class="match-result-col">
+      <span class="match-result-txt">${isWin?'WIN':'LOSE'}</span>
+      <span class="match-queue">${queue}</span>
+      <span class="match-duration">${dur}</span>
+      <span class="match-duration" style="color:var(--text-muted);font-size:10px;">${timeAgo}</span>
+    </div>
+    <div class="match-main-col">
+      <div class="match-champ-icon" style="position:relative;">
+        <img src="${DD_IMG}/champion/${champ.id}.png" loading="lazy" onerror="this.src='${DD_IMG}/champion/Aatrox.png'"/>
+        <div class="match-champ-level">${me.champLevel}</div>
+      </div>
+      <div class="match-spells">
+        <div class="match-spell">${spell1?`<img src="${DD_IMG}/spell/${spell1}.png" loading="lazy"/>`:'&nbsp;'}</div>
+        <div class="match-spell">${spell2?`<img src="${DD_IMG}/spell/${spell2}.png" loading="lazy"/>`:'&nbsp;'}</div>
+      </div>
+      <div class="match-kda-col">
+        <div class="match-kda">
+          <span>${me.kills}</span><span class="sep">/</span>
+          <span style="color:#ef5350">${me.deaths}</span><span class="sep">/</span>
+          <span>${me.assists}</span>
+        </div>
+        <div class="match-kda-ratio ${kdaClass}">${kda==='Perfect'?'⚡ Perfect KDA':`${kda} : 1 KDA`}</div>
+        <div style="font-family:var(--font-ui);font-size:11px;color:var(--text-muted);margin-top:4px;">
+          ${esc(champ.name)} &nbsp;·&nbsp; <span style="color:${isWin?'#60a5fa':'#ef5350'}">${me.visionScore} 시야</span>
+        </div>
+      </div>
+    </div>
+    <div class="match-items-col">
+      <div class="match-items-row">${itemsTopHtml}</div>
+      <div class="match-items-row" style="margin-top:3px;">${itemsBottomHtml}</div>
+      <div class="match-cs-row" style="margin-top:6px;">CS ${cs} <span style="color:var(--text-muted)">(${csMin}/분)</span></div>
+      <div class="match-cs-row">${me.goldEarned.toLocaleString()} Gold</div>
+    </div>
+  `;
+  return div;
+}
+
+/* ─── 통계 누적 & 렌더 ─── */
+function accumChamp(match, champMap) {
+  const me = match?.info?.participants?.find(p => p.puuid === S.puuid);
+  if (!me) return;
+  const champ = champMap[me.championId] || {name:'???', id:'Aatrox'};
+  const name  = champ.name;
+  if (!S.champData[name]) S.champData[name] = {wins:0,games:0,kills:0,deaths:0,assists:0,cs:0, id:champ.id};
+  const d = S.champData[name];
+  d.games++; if(me.win) d.wins++;
+  d.kills+=me.kills; d.deaths+=me.deaths; d.assists+=me.assists;
+  d.cs += me.totalMinionsKilled+me.neutralMinionsKilled;
+}
+
+function updateStatsBar() {
+  const all = S.matchData, total = all.length;
+  if (!total) return;
+  const wins = all.filter(m=>m.info?.participants?.find(p=>p.puuid===S.puuid)?.win).length;
+  const wr   = Math.round(wins/total*100);
+  let sumK=0,sumD=0,sumA=0,sumCs=0;
+  all.forEach(m => {
+    const me = m.info?.participants?.find(p=>p.puuid===S.puuid);
+    if(!me) return;
+    sumK+=me.kills; sumD+=me.deaths; sumA+=me.assists;
+    sumCs+=(me.totalMinionsKilled+me.neutralMinionsKilled)/(m.info.gameDuration/60);
+  });
+  document.getElementById('stat-games').textContent = `${wins}W ${total-wins}L`;
+  document.getElementById('stat-wr').textContent    = `${wr}%`;
+  document.getElementById('stat-wr').style.color    = wr>=55?'var(--tier-emerald)':wr<=45?'#f87171':'var(--text-bright)';
+  document.getElementById('stat-kda').textContent   = `${(sumK/total).toFixed(1)} / ${(sumD/total).toFixed(1)} / ${(sumA/total).toFixed(1)}`;
+  document.getElementById('stat-cs').textContent    = (sumCs/total).toFixed(1);
+  document.getElementById('stats-bar-wrap').style.display = 'block';
+}
+
+function renderChampStats() {
+  const wrap   = document.getElementById('champ-stats-wrap');
+  const sorted = Object.entries(S.champData).sort((a,b)=>b[1].games-a[1].games);
+  if (!sorted.length) { wrap.innerHTML='<div class="state-box"><span class="msg">데이터 없음</span></div>'; return; }
+
+  const rows = sorted.map(([name,d])=>{
+    const wr  = Math.round(d.wins/d.games*100);
+    const kda = d.deaths===0?'Perfect':((d.kills+d.assists)/d.deaths).toFixed(2);
+    const wrClass = wr>=60?'high':wr<=40?'low':'';
+    return `<tr>
+      <td>
+        <span class="champ-icon-sm">
+          <img src="${DD_IMG}/champion/${d.id||name.replace(/ /g,'')}.png" style="width:100%;height:100%;object-fit:cover;border-radius:3px;" onerror="this.style.display='none'"/>
+        </span>${esc(name)}
+      </td>
+      <td style="font-family:var(--font-ui);">${d.games}</td>
+      <td>
+        <div class="wr-bar-wrap">
+          <div class="wr-bar"><div class="wr-bar-fill ${wrClass}" style="width:${wr}%"></div></div>
+          <span style="font-family:var(--font-ui);font-size:12px;min-width:36px;text-align:right;color:${wr>=60?'var(--tier-emerald)':wr<=40?'#f87171':'var(--text-bright)'}">${wr}%</span>
+        </div>
+      </td>
+      <td style="font-family:var(--font-ui);color:${kda==='Perfect'?'var(--tier-chall)':'var(--text-bright)'}">
+        ${kda==='Perfect'?'⚡ Perfect':kda}
+      </td>
+      <td style="font-family:var(--font-ui);color:var(--text-sub)">
+        ${(d.kills/d.games).toFixed(1)} / ${(d.deaths/d.games).toFixed(1)} / ${(d.assists/d.games).toFixed(1)}
+      </td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <table class="champ-stats-table">
+      <thead><tr><th>챔피언</th><th>게임</th><th>승률</th><th>KDA</th><th>평균 K/D/A</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+/* ─── 탭 전환 ─── */
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`tab-${tabId}`).classList.add('active');
+}
+
+/* ─── 유틸 ─── */
+function fmtNum(n) { if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1000) return (n/1000).toFixed(1)+'k'; return String(n); }
+function timeSince(ts) {
+  const s=Math.floor(Date.now()/1000-ts);
+  if(s<3600) return `${Math.floor(s/60)}분 전`;
+  if(s<86400) return `${Math.floor(s/3600)}시간 전`;
+  if(s<604800) return `${Math.floor(s/86400)}일 전`;
+  return new Date(ts*1000).toLocaleDateString('ko-KR');
+}
+function navigateTo(url) { document.body.style.transition='opacity .3s,transform .3s'; document.body.style.opacity='0'; document.body.style.transform='translateY(-8px)'; setTimeout(()=>location.href=url,280); }
+function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ─── 초기화 ─── */
+async function init() {
+  parseParams();
+  if (!S.puuid) { location.href='/RiotSearch/'; return; }
+  renderProfile();
+  await Promise.allSettled([loadLeague(), loadMastery(), initMatches()]);
+}
+init();
+</script>
+</body>
+</html>
