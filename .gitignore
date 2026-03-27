@@ -1,0 +1,15 @@
+# 환경 변수
+.env
+
+# DB
+db.sqlite3
+
+# Python 캐시
+__pycache__/
+*.pyc
+
+# Django static build
+staticfiles/
+
+# 로그
+*.log

@@ -2,11 +2,12 @@ import json as _json
 
 from django.contrib import admin
 from django.utils import timezone
-from django.utils.html import format_html
+from django.utils.html import format_html, mark_safe
 
 from .models import (
     BaseUserInformation_data, UserPreferGame, Post_Community, PostParticipant,
     Friendship, ChatMessage, JoinRequest, Notification, DirectMessage, UserReport,
+    Riot_UserINFO, Riot_MatchInfo,
     RiotDataCache, RankingSnapshot, RankingEntry,
     LOL_infoChampionTable, LOL_infoItemTable,
     VAL_infoAgentTable, Val_infoGunTable,
@@ -87,6 +88,123 @@ class UserReportAdmin(admin.ModelAdmin):
     ordering        = ('-created_at',)
 
 
+# ── Riot 유저 / 전적 캐시 ────────────────────────────────────────────
+
+class Riot_MatchInfoInline(admin.TabularInline):
+    """유저 상세 페이지에서 게임별 큐 목록을 인라인으로 표시."""
+    model           = Riot_MatchInfo
+    extra           = 0
+    can_delete      = True
+    show_change_link = True
+    readonly_fields = ('game', 'queue_type', 'last_match_id', 'data_size', 'updated_at')
+    fields          = ('game', 'queue_type', 'last_match_id', 'data_size', 'updated_at')
+
+    @admin.display(description='캐시 크기')
+    def data_size(self, obj):
+        import json as _j
+        try:
+            size = len(_j.dumps(obj.cached_data, ensure_ascii=False).encode())
+            if size >= 1024:
+                return f'{size / 1024:.1f} KB'
+            return f'{size} B'
+        except Exception:
+            return '—'
+
+
+@admin.register(Riot_UserINFO)
+class RiotUserINFOAdmin(admin.ModelAdmin):
+    list_display    = ('id', 'username_tag', 'region', 'game_count', 'last_searched_at')
+    search_fields   = ('username', 'tag', 'puuid')
+    list_filter     = ('region',)
+    ordering        = ('-last_searched_at',)
+    readonly_fields = ('puuid', 'last_searched_at')
+    inlines         = [Riot_MatchInfoInline]
+    fields          = ('puuid', 'username', 'tag', 'region', 'last_searched_at')
+
+    @admin.display(description='소환사')
+    def username_tag(self, obj):
+        return f'{obj.username}#{obj.tag}'
+
+    @admin.display(description='등록 게임 수')
+    def game_count(self, obj):
+        count = obj.match_infos.values('game').distinct().count()
+        games = obj.match_infos.values_list('game', flat=True).distinct()
+        label = ' / '.join(g.upper() for g in sorted(games))
+        return format_html(
+            '<span title="{}">{} 종</span>',
+            label, count,
+        )
+
+    actions = ['delete_match_cache']
+
+    @admin.action(description='선택 유저의 전적 캐시 전체 삭제')
+    def delete_match_cache(self, request, queryset):
+        count = Riot_MatchInfo.objects.filter(user__in=queryset).delete()[0]
+        self.message_user(request, f'전적 캐시 {count}건을 삭제했습니다.')
+
+
+@admin.register(Riot_MatchInfo)
+class RiotMatchInfoAdmin(admin.ModelAdmin):
+    list_display    = ('id', 'user_tag', 'game_badge', 'queue_type_display',
+                       'last_match_id', 'data_size', 'updated_at')
+    list_filter     = ('game', 'queue_type')
+    search_fields   = ('user__username', 'user__tag', 'last_match_id')
+    ordering        = ('-updated_at',)
+    readonly_fields = ('user', 'game', 'queue_type', 'last_match_id',
+                       'updated_at', 'data_preview')
+    fields          = ('user', 'game', 'queue_type', 'last_match_id',
+                       'updated_at', 'data_preview')
+
+    @admin.display(description='소환사')
+    def user_tag(self, obj):
+        return f'{obj.user.username}#{obj.user.tag}'
+
+    @admin.display(description='게임')
+    def game_badge(self, obj):
+        color = {'lol': '#c89b3c', 'tft': '#0bc4c4', 'val': '#ff4655'}.get(obj.game, '#888')
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 8px;'
+            'border-radius:4px;font-weight:700;font-size:11px;">{}</span>',
+            color, obj.game.upper(),
+        )
+
+    @admin.display(description='큐 타입')
+    def queue_type_display(self, obj):
+        return obj.get_queue_type_display()
+
+    @admin.display(description='캐시 크기')
+    def data_size(self, obj):
+        try:
+            size = len(_json.dumps(obj.cached_data, ensure_ascii=False).encode())
+            if size >= 1024:
+                return f'{size / 1024:.1f} KB'
+            return f'{size} B'
+        except Exception:
+            return '—'
+
+    @admin.display(description='캐시 데이터 미리보기')
+    def data_preview(self, obj):
+        try:
+            preview = _json.dumps(obj.cached_data, ensure_ascii=False, indent=2)
+            if len(preview) > 2000:
+                preview = preview[:2000] + '\n...(생략)...'
+            return format_html(
+                '<pre style="background:#1a1a2e;color:#e0e0e0;padding:12px;'
+                'border-radius:4px;font-size:11px;max-height:400px;overflow:auto;">'
+                '{}</pre>',
+                preview,
+            )
+        except Exception:
+            return '미리보기 불가'
+
+    actions = ['flush_selected']
+
+    @admin.action(description='선택 캐시 데이터 초기화 (빈 dict로)')
+    def flush_selected(self, request, queryset):
+        count = queryset.update(cached_data={}, last_match_id='')
+        self.message_user(request, f'{count}건의 캐시 데이터를 초기화했습니다.')
+
+
 @admin.register(RiotDataCache)
 class RiotDataCacheAdmin(admin.ModelAdmin):
     list_display    = ('cache_key', 'version', 'data_size', 'status_badge',
@@ -94,7 +212,7 @@ class RiotDataCacheAdmin(admin.ModelAdmin):
     list_filter     = ('version',)
     search_fields   = ('cache_key',)
     readonly_fields = ('cache_key', 'version', 'created_at', 'updated_at',
-                       'expires_at', 'data_preview')
+                       'expires_at', 'data_preview', 'status_badge_detail')  # ← 메서드는 반드시 readonly_fields에 등록
     ordering        = ('cache_key',)
     fields          = ('cache_key', 'version', 'status_badge_detail',
                        'created_at', 'updated_at', 'expires_at', 'data_preview')
@@ -113,10 +231,11 @@ class RiotDataCacheAdmin(admin.ModelAdmin):
 
     @admin.display(description='상태')
     def status_badge(self, obj):
+        # format_html은 placeholder가 없으면 TypeError → mark_safe 사용
         if obj.expires_at is None:
-            return format_html('<span style="color:#2196f3;font-weight:700;">♾ 영구</span>')
+            return mark_safe('<span style="color:#2196f3;font-weight:700;">♾ 영구</span>')
         if obj.is_expired():
-            return format_html('<span style="color:#f44336;font-weight:700;">✗ 만료됨</span>')
+            return mark_safe('<span style="color:#f44336;font-weight:700;">✗ 만료됨</span>')
         remaining = obj.expires_at - timezone.now()
         hours   = int(remaining.total_seconds() // 3600)
         minutes = int((remaining.total_seconds() % 3600) // 60)

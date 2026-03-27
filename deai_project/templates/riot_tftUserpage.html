@@ -694,6 +694,7 @@ async function loadRank() {
   }
   const data = await tftAPI(
     `/api/tft/rank/?puuid=${encodeURIComponent(S.puuid)}&region=${S.region}`
+    + `&name=${encodeURIComponent(S.gameName)}&tag=${encodeURIComponent(S.tagLine)}`
   );
   if (!data.success) {
     setRankUnranked('rank-card-solo');
@@ -771,6 +772,7 @@ async function initMatches() {
   const ml = document.getElementById('match-list');
   const idsData = await tftAPI(
     `/api/tft/matches/?puuid=${encodeURIComponent(S.puuid)}&region=${S.region}&count=50`
+    + `&name=${encodeURIComponent(S.gameName)}&tag=${encodeURIComponent(S.tagLine)}`
   );
   if (!idsData.success || !idsData.matchIds?.length) {
     ml.innerHTML = '<div class="state-box"><span class="icon">🎮</span><span class="msg">최근 게임 없음</span></div>';

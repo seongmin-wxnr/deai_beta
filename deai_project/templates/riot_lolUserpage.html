@@ -92,9 +92,28 @@
       </div>
 
       <div class="card anim-3">
-        <div class="tab-bar">
-          <button class="tab-btn active" onclick="switchTab('matches',this)">전적</button>
-          <button class="tab-btn" onclick="switchTab('champions',this)">챔피언 통계</button>
+        <div class="tab-bar" style="display:flex;align-items:center;justify-content:space-between;padding-right:12px;">
+          <div style="display:flex;">
+            <button class="tab-btn active" onclick="switchTab('matches',this)">전적</button>
+            <button class="tab-btn" onclick="switchTab('champions',this)">챔피언 통계</button>
+          </div>
+          <!-- 전적 갱신 버튼 -->
+          <button id="refresh-btn"
+            onclick="refreshMatches()"
+            style="display:flex;align-items:center;gap:6px;
+                   background:rgba(200,155,60,0.10);border:1px solid rgba(200,155,60,0.35);
+                   border-radius:6px;padding:5px 14px;cursor:pointer;
+                   font-family:var(--font-ui);font-size:12px;font-weight:700;
+                   color:var(--gold);letter-spacing:0.5px;transition:all 0.2s;"
+            onmouseover="if(!this.disabled){this.style.background='rgba(200,155,60,0.2)'}"
+            onmouseout="if(!this.disabled){this.style.background='rgba(200,155,60,0.10)'}">
+            <svg id="refresh-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+                 style="width:13px;height:13px;transition:transform 0.4s;">
+              <path d="M4 4a7 7 0 0 1 12 5M16 16a7 7 0 0 1-12-5"/>
+              <polyline points="1,4 4,4 4,7"/><polyline points="19,16 16,16 16,13"/>
+            </svg>
+            <span id="refresh-label">전적 갱신</span>
+          </button>
         </div>
         <div class="tab-content active" id="tab-matches" style="padding:16px;">
           <div class="match-list" id="match-list">
@@ -201,7 +220,13 @@ function renderProfile() {
 }
 
 async function loadLeague() {
-  const data = await riotAPI(`/api/riot/rank/?region=${S.region}&summonerId=${encodeURIComponent(S.summonerId)}&puuid=${encodeURIComponent(S.puuid)}`);
+  const data = await riotAPI(
+    `/api/riot/rank/?region=${S.region}`
+    + `&puuid=${encodeURIComponent(S.puuid)}`
+    + `&summonerId=${encodeURIComponent(S.summonerId)}`
+    + `&name=${encodeURIComponent(S.gameName)}`
+    + `&tag=${encodeURIComponent(S.tagLine)}`
+  );
   if (!data.success) { renderTierCard('tier-card-solo','개인/2인 랭크',null); renderTierCard('tier-card-flex','자유 랭크',null); return; }
   renderTierCard('tier-card-solo', '개인/2인 랭크', data.solo);
   renderTierCard('tier-card-flex', '자유 랭크',     data.flex);
@@ -264,7 +289,13 @@ function renderPromo(ms) {
 
 async function loadMastery() {
   const [data, champMap] = await Promise.all([
-    riotAPI(`/api/riot/mastery/?region=${S.region}&puuid=${encodeURIComponent(S.puuid)}&count=5`),
+    riotAPI(
+      `/api/riot/mastery/?region=${S.region}`
+      + `&puuid=${encodeURIComponent(S.puuid)}`
+      + `&name=${encodeURIComponent(S.gameName)}`
+      + `&tag=${encodeURIComponent(S.tagLine)}`
+      + `&count=5`
+    ),
     getChampMap(),
   ]);
   const el = document.getElementById('mastery-card');
@@ -300,8 +331,15 @@ async function loadMastery() {
 }
 const PAGE_SIZE = 20;
 
+// 갱신 쿨다운 상태
+let _refreshTimer = null;
+
 async function loadMatches(start=0) {
-  return riotAPI(`/api/riot/matches/?region=${S.region}&puuid=${encodeURIComponent(S.puuid)}&start=${start}&count=${PAGE_SIZE}`);
+  return riotAPI(
+    `/api/riot/matches/?region=${S.region}&puuid=${encodeURIComponent(S.puuid)}`
+    + `&name=${encodeURIComponent(S.gameName)}&tag=${encodeURIComponent(S.tagLine)}`
+    + `&start=${start}&count=${PAGE_SIZE}`
+  );
 }
 
 async function loadMatchDetail(matchId) {
@@ -310,10 +348,13 @@ async function loadMatchDetail(matchId) {
 
 async function initMatches() {
   const ml = document.getElementById('match-list');
-  const [idsData, champMap, spellMap] = await Promise.all([loadMatches(0), getChampMap(), getSpellMap()]);
+  const [idsData, champMap, spellMap] = await Promise.all([
+    loadMatches(0), getChampMap(), getSpellMap()
+  ]);
 
   if (!idsData.success || !idsData.matchIds?.length) {
     ml.innerHTML = '<div class="state-box"><span class="icon">🎮</span><span class="msg">최근 게임 없음</span></div>';
+    document.getElementById('load-more-wrap').style.display = 'none';
     return;
   }
 
@@ -326,31 +367,173 @@ async function initMatches() {
     }
   });
 
-  S.matchStart = PAGE_SIZE;
-  if (idsData.matchIds.length === PAGE_SIZE) document.getElementById('load-more-wrap').style.display = 'block';
+  S.matchStart = idsData.matchIds.length;
+  // 20게임이 꽉 찼으면 더보기 표시 (더 있을 수 있음)
+  document.getElementById('load-more-wrap').style.display =
+    idsData.matchIds.length >= 20 ? 'block' : 'none';
   updateStatsBar();
   renderChampStats();
-
 }
 
 async function loadMoreMatches() {
   const btn = document.getElementById('load-more-btn');
-  btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;"></div>';
-  const [idsData, champMap, spellMap] = await Promise.all([loadMatches(S.matchStart), getChampMap(), getSpellMap()]);
-  if (idsData.success) {
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;display:inline-block;"></div>';
+
+  try {
+    const res  = await fetch(
+      `/api/riot/matches/more/?region=${S.region}&puuid=${encodeURIComponent(S.puuid)}`
+      + `&name=${encodeURIComponent(S.gameName)}&tag=${encodeURIComponent(S.tagLine)}`
+    );
+    const data = await res.json();
+
+    if (!data.success) {
+      showToast('더 보기 실패: ' + (data.message || '알 수 없는 오류'));
+      btn.disabled = false; btn.innerHTML = '더 보기';
+      return;
+    }
+
+    if (!data.matchIds?.length) {
+      // 더 이상 게임 없음
+      document.getElementById('load-more-wrap').style.display = 'none';
+      showToast('더 이상 불러올 게임이 없습니다.');
+      return;
+    }
+
+    const [champMap, spellMap] = await Promise.all([getChampMap(), getSpellMap()]);
     const ml = document.getElementById('match-list');
-    const details = await Promise.allSettled(idsData.matchIds.map(id => loadMatchDetail(id)));
+
+    const details = await Promise.allSettled(data.matchIds.map(id => loadMatchDetail(id)));
     details.forEach(r => {
       if (r.status === 'fulfilled' && r.value.success) {
         const card = buildMatchCard(r.value.match, champMap, spellMap);
         if (card) { ml.appendChild(card); S.matchData.push(r.value.match); accumChamp(r.value.match, champMap); }
       }
     });
-    S.matchStart += PAGE_SIZE;
-    updateStatsBar(); renderChampStats();
-    if (idsData.matchIds.length < PAGE_SIZE) document.getElementById('load-more-wrap').style.display = 'none';
+
+    S.matchStart = data.totalIds?.length ?? (S.matchStart + data.matchIds.length);
+    updateStatsBar();
+    renderChampStats();
+
+    // 서버가 hasMore=false 이거나 10개 미만이면 더 보기 숨김
+    if (!data.hasMore || data.matchIds.length < 10) {
+      document.getElementById('load-more-wrap').style.display = 'none';
+    }
+
+  } catch(e) {
+    showToast('더 보기 중 오류가 발생했습니다.');
+  } finally {
+    btn.disabled = false; btn.innerHTML = '더 보기';
   }
-  btn.disabled = false; btn.innerHTML = '더 보기';
+}
+
+async function refreshMatches() {
+  const btn   = document.getElementById('refresh-btn');
+  const icon  = document.getElementById('refresh-icon');
+  const label = document.getElementById('refresh-label');
+
+  btn.disabled = true;
+  icon.style.animation = 'spin 0.7s linear infinite';
+  label.textContent    = '갱신 중...';
+
+  try {
+    const res = await fetch(
+      `/api/riot/refresh/?region=${S.region}&puuid=${encodeURIComponent(S.puuid)}`
+      + `&name=${encodeURIComponent(S.gameName)}&tag=${encodeURIComponent(S.tagLine)}`
+    );
+    const data = await res.json();
+
+    if (!data.success && data.cooldown) {
+      // 쿨다운 중
+      startCooldownUI(data.remaining);
+      return;
+    }
+
+    if (!data.success) {
+      showToast('갱신 실패: ' + (data.message || '알 수 없는 오류'));
+      setRefreshReady();
+      return;
+    }
+
+    const newCount = data.newCount || 0;
+    if (newCount === 0) {
+      showToast('새로운 게임이 없습니다.');
+      startCooldownUI(180);
+      return;
+    }
+
+    // 새 경기 있으면 전적 목록 전체 재렌더
+    showToast(`${newCount}게임 갱신됨!`);
+    S.matchData = [];
+    S.champData = {};
+    document.getElementById('match-list').innerHTML =
+      '<div class="state-box"><div class="spinner"></div><span class="msg">전적 불러오는 중...</span></div>';
+
+    const [champMap, spellMap] = await Promise.all([getChampMap(), getSpellMap()]);
+    const ml = document.getElementById('match-list');
+    ml.innerHTML = '';
+
+    const details = await Promise.allSettled(data.matchIds.map(id => loadMatchDetail(id)));
+    details.forEach(r => {
+      if (r.status === 'fulfilled' && r.value.success) {
+        const card = buildMatchCard(r.value.match, champMap, spellMap);
+        if (card) { ml.appendChild(card); S.matchData.push(r.value.match); accumChamp(r.value.match, champMap); }
+      }
+    });
+    updateStatsBar();
+    renderChampStats();
+    startCooldownUI(180);
+
+  } catch(e) {
+    showToast('갱신 중 오류가 발생했습니다.');
+    setRefreshReady();
+  }
+}  // ← refreshMatches 닫는 중괄호
+
+function startCooldownUI(seconds) {
+  const btn   = document.getElementById('refresh-btn');
+  const icon  = document.getElementById('refresh-icon');
+  const label = document.getElementById('refresh-label');
+
+  btn.disabled = true;
+  icon.style.animation = '';
+  icon.style.transform = '';
+
+  if (_refreshTimer) clearInterval(_refreshTimer);
+  let remaining = seconds;
+
+  const tick = () => {
+    if (remaining <= 0) {
+      clearInterval(_refreshTimer);
+      _refreshTimer = null;
+      setRefreshReady();
+      return;
+    }
+    const m = Math.floor(remaining / 60);
+    const s = String(remaining % 60).padStart(2, '0');
+    label.textContent = `${m}:${s} 후 갱신 가능`;
+    btn.style.color        = 'var(--text-muted)';
+    btn.style.borderColor  = 'var(--border)';
+    btn.style.background   = 'none';
+    btn.style.cursor       = 'not-allowed';
+    remaining--;
+  };
+  tick();
+  _refreshTimer = setInterval(tick, 1000);
+}
+
+function setRefreshReady() {
+  const btn   = document.getElementById('refresh-btn');
+  const label = document.getElementById('refresh-label');
+  const icon  = document.getElementById('refresh-icon');
+  btn.disabled          = false;
+  btn.style.color       = 'var(--gold)';
+  btn.style.borderColor = 'rgba(200,155,60,0.35)';
+  btn.style.background  = 'rgba(200,155,60,0.10)';
+  btn.style.cursor      = 'pointer';
+  icon.style.animation  = '';
+  icon.style.transform  = '';
+  label.textContent     = '전적 갱신';
 }
 
 function buildMatchCard(match, champMap, spellMap) {
@@ -727,6 +910,16 @@ function timeSince(ts) {
   if(s<604800) return `${Math.floor(s/86400)}일 전`;
   return new Date(ts*1000).toLocaleDateString('ko-KR');
 }
+function showToast(msg, duration=2800) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.cssText = 'display:block;position:fixed;bottom:32px;left:50%;transform:translateX(-50%);' +
+    'background:#1a1a2e;border:1px solid rgba(200,155,60,0.45);color:var(--gold);' +
+    'font-family:var(--font-ui);font-size:13px;font-weight:600;padding:12px 24px;' +
+    'border-radius:8px;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.5);';
+  clearTimeout(window._toast);
+  window._toast = setTimeout(() => { t.style.display = 'none'; }, duration);
+}
 function navigateTo(url) { document.body.style.transition='opacity .3s,transform .3s'; document.body.style.opacity='0'; document.body.style.transform='translateY(-8px)'; setTimeout(()=>location.href=url,280); }
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -735,6 +928,8 @@ async function init() {
   parseParams();
   if (!S.puuid) { location.href='/RiotSearch/'; return; }
   renderProfile();
+  // champMap을 미리 한 번 fetch해서 캐시에 올림 → loadMastery/initMatches 병렬 호출 시 중복 요청 방지
+  await getChampMap();
   await Promise.allSettled([loadLeague(), loadMastery(), initMatches()]);
 }
 init();
@@ -811,6 +1006,7 @@ init();
 <style>
 #match-modal-overlay { animation: fadeIn 0.15s ease; }
 @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+@keyframes spin    { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
 .modal-player-row { transition: background 0.1s; border-bottom: 1px solid #1e1e1e; }
 .modal-player-row:hover { background: #181818; }
 .modal-player-row.me { background: rgba(200,155,60,0.1); border-left: 2px solid var(--gold); }

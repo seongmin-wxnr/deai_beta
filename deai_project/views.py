@@ -117,7 +117,7 @@ def login_(request):
                     'success'     : True,
                     'message'     : '관리자 로그인 성공!',
                     'username'    : user.username,
-                    'redirect_url': '/admin-panel/',
+                    'redirect_url': '/admin_panel/',
                 })
 
             has_game = UserPreferGame.objects.filter(user=user).exists()
@@ -260,7 +260,8 @@ def api_login(request):
                 'success'     : True,
                 'message'     : '관리자 로그인 성공!',
                 'username'    : user.username,
-                'redirect_url': '/admin-panel/',
+                'redirect_url': '/admin_panel/',
+                
             })
 
         has_game = UserPreferGame.objects.filter(user=user).exists()

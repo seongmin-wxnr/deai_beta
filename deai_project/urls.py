@@ -48,7 +48,7 @@ urlpatterns = [
     path("api/dm/history/<str:username>/", views.api_dm_history, name='api_dm_history'),
     path("api/notifications/clear/", views.api_notifications_clear,name='api_notifications_clear'),
     path("api/report/", views.api_report, name='api_report'),
-    path("admin-panel/",views.admin_panel, name='admin_panel'),
+    path("admin_panel/",views.admin_panel, name='admin_panel'),
     path("api/admin/reports/",views.api_admin_reports, name='api_admin_reports'),
     path("api/admin/report/action/", views.api_admin_report_action, name='api_admin_report_action'),
     path("api/admin/user/", views.api_admin_user_lookup,name='api_admin_user_lookup'),
@@ -63,6 +63,7 @@ urlpatterns = [
 
     ## riot api space
     # riot/lol/ + user
+    path('api/riot/refresh/', riot_apiViews.riot_api_refreshMatches, name='riot_refresh'),
     path("RiotSearch/", riot_apiViews.riotSearchPage_rendering,name='riot_lol_search'),
     path("RiotUserPage/", riot_apiViews.riotUserPage_rendering, name='riot_lol_user'),
     path("riot/lol/user/", riot_apiViews.riotUserPage_rendering, name='riot_lol_user2'),
@@ -74,6 +75,9 @@ urlpatterns = [
     path("api/riot/dd-version/", riot_apiViews.riot_api_ddVersion, name='riot_api_dd_version'),
     path("api/riot/champions/", riot_apiViews.riot_api_champions, name='riot_api_champions'),
     path("api/riot/dd-spell/", riot_apiViews.riot_api_ddSpell, name='riot_api_dd_spell'),
+    path('api/riot/matches/more/', riot_apiViews.riot_api_loadMoreMatches, name='riot_load_more'),
+
+    path('api/riot/debug/ping/', riot_apiViews.riot_api_debug_ping, name='riot_debug_ping'),
 
     ## riot api
     ## valorant 

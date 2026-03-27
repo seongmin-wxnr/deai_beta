@@ -89,7 +89,7 @@
       티모 없애기
     </button>
   </div>
-</nav>
+</nav>  
 
 <div class="page-wrapper" style="position:relative;z-index:1;">
   <div class="search-hero">
@@ -158,12 +158,6 @@
 <div class="toast" id="toast"></div>
 
 <script>
-window.onload = function() {
-    if (!sessionStorage.getItem("isReloaded")) {
-        sessionStorage.setItem("isReloaded", "true");
-        location.reload();
-    }
-}
 async function doSearch() {
   const region   = document.getElementById('region-select').value;
   const gameName = document.getElementById('name-input').value.trim();
@@ -174,7 +168,7 @@ async function doSearch() {
   setLoading(true);
 
   try {
-    // /api/riot/account/ 하나로 Account + Summoner 정보를 모두 반환
+    // /api/riot/account/ → DB 캐시 우선 조회, 미스 시 Riot API 호출
     const apiPath = currentGame === 'tft'
       ? `/api/tft/account/?name=${encodeURIComponent(gameName)}&tag=${encodeURIComponent(tagLine)}&region=${encodeURIComponent(region)}`
       : `/api/riot/account/?region=${encodeURIComponent(region)}&name=${encodeURIComponent(gameName)}&tag=${encodeURIComponent(tagLine)}`;
@@ -185,15 +179,15 @@ async function doSearch() {
     // 최근 검색 저장
     saveRecent({ gameName: data.gameName, tagLine: data.tagLine, region });
 
-    // 유저 페이지로 이동 (URL 파라미터로 필요한 정보 전달)
+    // 유저 페이지로 이동
     const p = new URLSearchParams({
       name:       data.gameName,
       tag:        data.tagLine,
       region:     region,
       puuid:      data.puuid,
-      summonerId: data.summonerId,
-      iconId:     data.profileIconId,
-      level:      data.summonerLevel,
+      summonerId: data.summonerId || '',
+      iconId:     data.profileIconId || 1,
+      level:      data.summonerLevel || 1,
     });
     if (currentGame === 'val') {
       navigateTo(`/riot/val/user/?${p.toString()}`);

@@ -7,20 +7,33 @@ from django.http      import JsonResponse
 from django.shortcuts import render
 from django.conf      import settings
 from django.core.cache import cache
+from django.utils     import timezone
 
-#   VALORANT Tier System
-#   competitiveTier 숫자 → 티어 이름 매핑
-#   0~2  : 배치 없음
-#   3~5  : Iron 1/2/3
-#   6~8  : Bronze 1/2/3
-#   9~11 : Silver 1/2/3
-#   12~14: Gold 1/2/3
-#   15~17: Platinum 1/2/3
-#   18~20: Diamond 1/2/3
-#   21~23: Ascendant 1/2/3
-#   24~26: Immortal 1/2/3
-#   27   : Radiant
-#   RR (Rating Rank): 0 ~ 99 (Immortal 이하)
+# 공통 DB 캐시 헬퍼
+from .riot_apiViews import (
+    _user_cache_get,
+    _user_cache_set,
+    _user_info_upsert,
+    _cached_get,
+    _cached_set,
+    MATCH_CACHE_TTL,
+    MATCH_IDS_TTL,
+    _CACHE_MISS,
+)
+
+# VALORANT Tier System
+# competitiveTier 숫자 티어 이름 매핑
+# 0~2 : 배치 없음
+# 3~5 : Iron 1/2/3
+# 6~8 : Bronze 1/2/3
+# 9~11 : Silver 1/2/3
+# 12~14: Gold 1/2/3
+# 15~17: Platinum 1/2/3
+# 18~20: Diamond 1/2/3
+# 21~23: Ascendant 1/2/3
+# 24~26: Immortal 1/2/3
+# 27 : Radiant
+# RR (Rating Rank): 0 ~ 99 (Immortal 이하)
 
 class RiotAPIError(Exception):
     def __init__(self, status_code: int, message: str):
@@ -119,7 +132,7 @@ def _get_agent_icon(character_id: str) -> str:
 
 
 def _get_map_name(map_id: str) -> str:
-    return settings.__eq__VAL_MAP_MAP.get(map_id, map_id.split('/')[-1] if map_id else 'Unknown')
+    return settings.VAL_MAP_MAP.get(map_id, map_id.split('/')[-1] if map_id else 'Unknown')
 
 
 def riot_api_VRTUserPageRendering(request):
@@ -145,19 +158,48 @@ def val_api_search_account(request):
     try:
         _, regional = _get_region_urls(region)
 
-        account = _riot_get(
+        # 1순위: DB 캐시 조회 (puuid 있으면 API 호출 없음)
+        try:
+            from .models import Riot_UserINFO
+            cached_user = Riot_UserINFO.objects.filter(
+                username__iexact=name, tag__iexact=tag, region=region
+            ).first()
+            if cached_user and cached_user.puuid:
+                print(f'[VAL SEARCH HIT] puuid={cached_user.puuid[:12]}…', flush=True)
+                return JsonResponse({
+                    'success'       : True,
+                    'gameName'      : cached_user.username,
+                    'tagLine'       : cached_user.tag,
+                    'puuid'         : cached_user.puuid,
+                    'summonerId'    : '',
+                    'profileIconId' : 29,
+                    'summonerLevel' : 0,
+                    'cached'        : True,
+                })
+        except Exception as ex:
+            print(f'[VAL SEARCH] DB 조회 실패(API 폴백): {ex}', flush=True)
+
+        # 2순위: Riot API 호출
+        account  = _riot_get(
             f'https://{regional}/riot/account/v1/accounts/by-riot-id'
             f'/{urllib.parse.quote(name)}/{urllib.parse.quote(tag)}'
         )
+        puuid    = account['puuid']
+        gameName = account.get('gameName', name)
+        tagLine  = account.get('tagLine',  tag)
+
+        _user_info_upsert(puuid=puuid, username=gameName, tag=tagLine, region=region)
+        print(f'[VAL SEARCH] API 호출 완료 + DB 저장 puuid={puuid[:12]}…', flush=True)
 
         return JsonResponse({
             'success'       : True,
-            'gameName'      : account.get('gameName', name),
-            'tagLine'       : account.get('tagLine',  tag),
-            'puuid'         : account['puuid'],
+            'gameName'      : gameName,
+            'tagLine'       : tagLine,
+            'puuid'         : puuid,
             'summonerId'    : '',
             'profileIconId' : 29,
             'summonerLevel' : 0,
+            'cached'        : False,
         })
 
     except RiotAPIError as e:
@@ -175,46 +217,87 @@ def val_api_getMatchIDs(request):
     if request.method != 'GET':
         return JsonResponse({'success': False, 'message': '잘못된 메서드입니다.'}, status=405)
 
-    puuid  = request.GET.get('puuid',  '').strip()
-    region = request.GET.get('region', 'kr').strip().lower()
+    puuid       = request.GET.get('puuid',  '').strip()
+    region      = request.GET.get('region', 'kr').strip().lower()
+    username    = request.GET.get('name',   '').strip()
+    tag         = request.GET.get('tag',    '').strip()
+    queue_param = request.GET.get('queueId', '').strip()
+    q_slug_map  = {
+        'competitive'   : 'val_competitive',
+        'unrated'       : 'val_unrated',
+        'spikerush'     : 'val_spike_rush',
+        'deathmatch'    : 'val_deathmatch',
+        'teamdeathmatch': 'val_team_deathmatch',
+    }
+    q_slug = q_slug_map.get(queue_param, 'val_unrated')
 
     if not puuid:
         return JsonResponse({'success': False, 'message': 'puuid가 필요합니다.'}, status=400)
 
+    # DB 캐시 조회 (match_ids 필드, 10분 TTL)
+    try:
+        from .models import Riot_UserINFO, Riot_MatchInfo
+        user = Riot_UserINFO.get_or_none(puuid)
+        if user:
+            obj = Riot_MatchInfo.objects.filter(
+                user=user, game='val', queue_type=q_slug
+            ).first()
+            if obj:
+                stored_ids = getattr(obj, 'match_ids', None) or []
+                if stored_ids:
+                    age = (timezone.now() - obj.updated_at).total_seconds()
+                    if age <= MATCH_IDS_TTL:
+                        print(f'[VAL MATCH IDS HIT] slug={q_slug} count={len(stored_ids)} age={int(age)}s', flush=True)
+                        return JsonResponse({
+                            'success' : True,
+                            'matchIds': stored_ids,
+                            'cached'  : True,
+                        })
+                    else:
+                        print(f'[VAL MATCH IDS MISS] TTL 만료 age={int(age)}s', flush=True)
+    except Exception as ex:
+        print(f'[VAL MATCH IDS] DB 조회 실패(API 폴백): {ex}', flush=True)
+
+    # Riot API 호출
     try:
         platform, _ = _get_region_urls(region)
-        data      = _riot_get(f'https://{platform}/val/match/v1/matchlists/by-puuid/{puuid}')
-        match_ids = [h['matchId'] for h in data.get('history', [])]
+        ml_data = _riot_get(f'https://{platform}/val/match/v1/matchlists/by-puuid/{puuid}')
+        history = ml_data.get('history', [])
+        if queue_param:
+            history = [h for h in history if h.get('queueId') == queue_param]
+        ids = [h['matchId'] for h in history if h.get('matchId')]
 
-        return JsonResponse({'success': True, 'matchIds': match_ids})
+        try:
+            _user_cache_set(
+                puuid, username, tag, region,
+                game='val', queue_type=q_slug,
+                data={},
+                last_match_id=ids[0] if ids else '',
+                match_ids=ids,
+            )
+        except Exception as ex:
+            print(f'[VAL MATCH IDS] DB 저장 실패(무시): {ex}', flush=True)
+
+        return JsonResponse({'success': True, 'matchIds': ids, 'cached': False})
 
     except RiotAPIError as e:
         return _handle_error(e)
     except Exception as e:
         print(f"[VAL] matchlist 예외: {e}", flush=True)
         return JsonResponse({'success': False, 'message': str(e)}, status=500)
-# {
-#   success,
-#   match: {
-#     matchInfo: { matchId, mapId, mapName, gameLengthMillis,
-#                  gameStartMillis, queueId, queueName },
-#     players: [{
-#       puuid, teamId, characterId, agentName, agentIconUrl,
-#       competitiveTier, tierName, tierDivision,
-#       riotIdGameName, riotIdTagline,
-#       stats: { score, roundsPlayed, kills, deaths, assists },
-#       damage: { total, perRound, headshots, bodyshots, legshots, hsPercent },
-#       acs, kda
-#     }],
-#     teams: [{ teamId, won, roundsPlayed, roundsWon, numPoints }]
-#   }
-# }
 
 def val_api_matchDetail(request, match_id):
     if request.method != 'GET':
         return JsonResponse({'success': False, 'message': '잘못된 메서드입니다.'}, status=405)
 
     region = request.GET.get('region', 'kr').strip().lower()
+
+    # 24시간 캐시 조회 (경기 결과는 불변)
+    cache_key = f'val_match_detail:{match_id}'
+    cached = _cached_get(cache_key)
+    if cached:
+        print(f'[VAL MATCH HIT] match_id={match_id}', flush=True)
+        return JsonResponse({'success': True, 'match': cached, 'cached': True})
 
     try:
         platform, _ = _get_region_urls(region)
@@ -239,7 +322,7 @@ def val_api_matchDetail(request, match_id):
             deaths  = stats.get('deaths',  0)
             assists = stats.get('assists', 0)
 
-            # ACS 
+            # ACS
             acs = round(score / rounds, 1)
 
             # 히트 통계
@@ -297,23 +380,22 @@ def val_api_matchDetail(request, match_id):
         queue_id = match_info.get('queueId', '')
         map_id   = match_info.get('mapId',   '')
 
-        return JsonResponse({
-            'success': True,
-            'match': {
-                'matchInfo': {
-                    'matchId'          : match_info.get('matchId', match_id),
-                    'mapId'            : map_id,
-                    'mapName'          : _get_map_name(map_id),
-                    'gameLengthMillis' : match_info.get('gameLengthMillis', 0),
-                    'gameStartMillis'  : match_info.get('gameStartMillis', 0),
-                    'queueId'          : queue_id,
-                    'queueName'        : settings.VAL_QUEUE_MAP.get(queue_id, queue_id or '커스텀'),
-                    'seasonId'         : match_info.get('seasonId', ''),
-                },
-                'players': players,
-                'teams'  : teams,
-            }
-        })
+        result = {
+            'matchInfo': {
+                'matchId'          : match_info.get('matchId', match_id),
+                'mapId'            : map_id,
+                'mapName'          : _get_map_name(map_id),
+                'gameLengthMillis' : match_info.get('gameLengthMillis', 0),
+                'gameStartMillis'  : match_info.get('gameStartMillis', 0),
+                'queueId'          : queue_id,
+                'queueName'        : settings.VAL_QUEUE_MAP.get(queue_id, queue_id or '커스텀'),
+                'seasonId'         : match_info.get('seasonId', ''),
+            },
+            'players': players,
+            'teams'  : teams,
+        }
+        _cached_set(cache_key, result)
+        return JsonResponse({'success': True, 'match': result, 'cached': False})
 
     except RiotAPIError as e:
         return _handle_error(e)
@@ -325,8 +407,10 @@ def val_api_getRank(request):
     if request.method != 'GET':
         return JsonResponse({'success': False, 'message': '잘못된 메서드입니다.'}, status=405)
 
-    puuid = request.GET.get('puuid',  '').strip()
-    region = request.GET.get('region', 'kr').strip().lower()
+    puuid    = request.GET.get('puuid',  '').strip()
+    region   = request.GET.get('region', 'kr').strip().lower()
+    username = request.GET.get('name',   '').strip()
+    tag      = request.GET.get('tag',    '').strip()
 
     if not puuid:
         return JsonResponse({'success': False, 'message': 'puuid가 필요합니다.'}, status=400)
@@ -335,30 +419,38 @@ def val_api_getRank(request):
         'success': True, 'ranked': False,
         'tier': 0, 'tierName': 'UNRANKED', 'tierDivision': '',
         'rr': 0, 'wins': 0, 'losses': 0, 'matches': 0,
+        'cached': False,
     }
+    cached = _user_cache_get(puuid, 'val', 'val_competitive')
+    if cached is not _CACHE_MISS:
+        print(f'[VAL RANK HIT] puuid={puuid[:12]}… data={str(cached)[:60]}', flush=True)
+        if cached:
+            return JsonResponse({**cached, 'success': True, 'cached': True})
+        else:
+            return JsonResponse({**UNRANKED_RESP, 'cached': True})
 
     try:
         platform, _ = _get_region_urls(region)
-        ml_data = _riot_get(f'https://{platform}/val/match/v1/matchlists/by-puuid/{puuid}')
-        history = ml_data.get('history', [])
+        ml_data  = _riot_get(f'https://{platform}/val/match/v1/matchlists/by-puuid/{puuid}')
+        history  = ml_data.get('history', [])
         comp_his = [h for h in history if h.get('queueId') == 'competitive']
 
         if not comp_his:
             return JsonResponse(UNRANKED_RESP)
 
-        latest = _riot_get(f'https://{platform}/val/match/v1/matches/{comp_his[0]["matchId"]}')
-        me_player  = next((p for p in latest.get('players', []) if p.get('puuid') == puuid), None)
+        latest    = _riot_get(f'https://{platform}/val/match/v1/matches/{comp_his[0]["matchId"]}')
+        me_player = next((p for p in latest.get('players', []) if p.get('puuid') == puuid), None)
 
         if not me_player:
             return JsonResponse(UNRANKED_RESP)
 
-        tier= me_player.get('competitiveTier', 0)
+        tier      = me_player.get('competitiveTier', 0)
         tier_info = _get_tier_info(tier)
 
         wins = 0; losses = 0
         for h in comp_his[:5]:
             try:
-                m = _riot_get(f'https://{platform}/val/match/v1/matches/{h["matchId"]}')
+                m  = _riot_get(f'https://{platform}/val/match/v1/matches/{h["matchId"]}')
                 me = next((p for p in m.get('players', []) if p.get('puuid') == puuid), None)
                 if not me:
                     continue
@@ -369,7 +461,7 @@ def val_api_getRank(request):
             except Exception:
                 pass
 
-        return JsonResponse({
+        rank_data = {
             'success'      : True,
             'ranked'       : tier > 2,
             'tier'         : tier,
@@ -379,7 +471,12 @@ def val_api_getRank(request):
             'wins'         : wins,
             'losses'       : losses,
             'matches'      : wins + losses,
-        })
+        }
+        _user_cache_set(puuid, username, tag, region,
+                        'val', 'val_competitive', rank_data if tier > 2 else {})
+        print(f'[VAL RANK] API 호출 tier={tier} wins={wins} losses={losses}', flush=True)
+
+        return JsonResponse({**rank_data, 'cached': False})
 
     except RiotAPIError as e:
         return _handle_error(e)

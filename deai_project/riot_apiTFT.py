@@ -8,6 +8,21 @@ from django.http       import JsonResponse
 from django.shortcuts  import render
 from django.conf       import settings
 from django.core.cache import cache
+from django.utils      import timezone
+
+# 공통 DB 캐시 헬퍼 (riot_apiViews 에서 import)
+from .riot_apiViews import (
+    _user_cache_get,
+    _user_cache_set,
+    _user_info_upsert,
+    _match_detail_cache_get,
+    _match_detail_cache_set,
+    _cached_get,
+    _cached_set,
+    MATCH_CACHE_TTL,
+    MATCH_IDS_TTL,
+    _CACHE_MISS,
+)
 
 
 _COMPANION_CACHE: dict  = {}
@@ -52,12 +67,10 @@ def _companion_img_url(content_id: str) -> str:
     return _COMPANION_CACHE.get(content_id, '')
 
 
-# ══════════════════════════════════════════════════════════════
 # 상수
-# ══════════════════════════════════════════════════════════════
 
-# tft_game_type (match API) → 한글
-# queue_id fallback: 1090=일반, 1100=솔로랭크, 1130=하이퍼롤, 1160=더블업
+# tft_game_type (match API) 한글
+# queue_id 폴백: 1090=일반, 1100=솔로랭크, 1130=하이퍼롤, 1160=더블업
 TFT_QUEUE_KO = {
     'standard' : '일반',
     'ranked'   : '솔로랭크',
@@ -207,7 +220,7 @@ def _fetch_rank_cached(platform: str, puuid: str, prefer_double: bool = False) -
     cache_key = f'tft_rank_{platform}_{puuid}'
     cached = cache.get(cache_key)
     if cached is not None:
-        return cached if cached else None   # False 저장 = 언랭
+        return cached if cached else None  # False 저장 = 언랭
 
     entries = _riot_get(f'https://{platform}/tft/league/v1/by-puuid/{puuid}')
 
@@ -243,24 +256,61 @@ def tft_api_search_account(request):
     try:
         platform, regional = _get_region_urls(region)
 
+        # 1순위: DB 캐시 조회 (puuid 있으면 API 호출 없음)
+        try:
+            from .models import Riot_UserINFO
+            cached_user = Riot_UserINFO.objects.filter(
+                username__iexact=name, tag__iexact=tag, region=region
+            ).first()
+            if cached_user and cached_user.puuid:
+                print(f'[TFT SEARCH HIT] puuid={cached_user.puuid[:12]}…', flush=True)
+                return JsonResponse({
+                    'success'      : True,
+                    'gameName'     : cached_user.username,
+                    'tagLine'      : cached_user.tag,
+                    'puuid'        : cached_user.puuid,
+                    'summonerId'   : getattr(cached_user, 'summoner_id', ''),
+                    'profileIconId': getattr(cached_user, 'profile_icon_id', 1),
+                    'summonerLevel': getattr(cached_user, 'summoner_level', 0),
+                    'cached'       : True,
+                })
+        except Exception as ex:
+            print(f'[TFT SEARCH] DB 조회 실패(API 폴백): {ex}', flush=True)
+
+        # 2순위: Riot API 호출
         account = _riot_get(
             f'https://{regional}/riot/account/v1/accounts/by-riot-id'
             f'/{urllib.parse.quote(name)}/{urllib.parse.quote(tag)}'
         )
-        puuid = account['puuid']
+        puuid    = account['puuid']
+        gameName = account.get('gameName', name)
+        tagLine  = account.get('tagLine',  tag)
 
-        summoner = _riot_get(
+        summoner        = _riot_get(
             f'https://{platform}/tft/summoner/v1/summoners/by-puuid/{puuid}'
         )
+        summoner_id     = summoner.get('id', '')
+        profile_icon_id = summoner.get('profileIconId', 1)
+        summoner_level  = summoner.get('summonerLevel', 0)
+
+        # DB 저장
+        _user_info_upsert(
+            puuid=puuid, username=gameName, tag=tagLine, region=region,
+            summoner_id=summoner_id,
+            profile_icon_id=profile_icon_id,
+            summoner_level=summoner_level,
+        )
+        print(f'[TFT SEARCH] API 호출 완료 + DB 저장 puuid={puuid[:12]}…', flush=True)
 
         return JsonResponse({
             'success'      : True,
-            'gameName'     : account.get('gameName', name),
-            'tagLine'      : account.get('tagLine',  tag),
+            'gameName'     : gameName,
+            'tagLine'      : tagLine,
             'puuid'        : puuid,
-            'summonerId'   : summoner.get('id', ''),
-            'profileIconId': summoner.get('profileIconId', 1),
-            'summonerLevel': summoner.get('summonerLevel', 0),
+            'summonerId'   : summoner_id,
+            'profileIconId': profile_icon_id,
+            'summonerLevel': summoner_level,
+            'cached'       : False,
         })
 
     except RiotAPIError as e:
@@ -274,20 +324,29 @@ def tft_api_getRank(request):
     if request.method != 'GET':
         return JsonResponse({'success': False, 'message': '잘못된 메서드입니다.'}, status=405)
 
-    puuid  = request.GET.get('puuid',  '').strip()
-    region = request.GET.get('region', 'kr').strip().lower()
+    puuid    = request.GET.get('puuid',  '').strip()
+    region   = request.GET.get('region', 'kr').strip().lower()
+    username = request.GET.get('name',   '').strip()
+    tag      = request.GET.get('tag',    '').strip()
 
     if not puuid:
         return JsonResponse({'success': False, 'message': 'puuid가 필요합니다.'}, status=400)
 
-    full_cache_key = f'tft_myrank_{region}_{puuid}'
-    cached = cache.get(full_cache_key)
-    if cached:
-        return JsonResponse(cached)
+    # DB 캐시 조회
+    cached_solo   = _user_cache_get(puuid, 'tft', 'tft_ranked')
+    cached_double = _user_cache_get(puuid, 'tft', 'tft_double_up')
+    if cached_solo is not _CACHE_MISS and cached_double is not _CACHE_MISS:
+        print(f'[TFT RANK HIT] puuid={puuid[:12]}… solo={str(cached_solo)[:40]} double={str(cached_double)[:40]}', flush=True)
+        return JsonResponse({
+            'success': True,
+            'solo'   : cached_solo   if cached_solo   else None,
+            'double' : cached_double if cached_double else None,
+            'cached' : True,
+        })
 
     try:
         platform, _ = _get_region_urls(region)
-        entries     = _riot_get(f'https://{platform}/tft/league/v1/by-puuid/{puuid}')
+        entries      = _riot_get(f'https://{platform}/tft/league/v1/by-puuid/{puuid}')
 
         solo_entry   = next((e for e in entries if e['queueType'] == 'RANKED_TFT'),           None)
         double_entry = next((e for e in entries if e['queueType'] == 'RANKED_TFT_DOUBLE_UP'), None)
@@ -295,16 +354,14 @@ def tft_api_getRank(request):
         solo_data   = _parse_rank_entry(solo_entry)   if solo_entry   else None
         double_data = _parse_rank_entry(double_entry) if double_entry else None
 
-        # 솔로 결과를 bulk_ranks 공용 캐시에도 저장
-        cache.set(
-            f'tft_rank_{platform}_{puuid}',
-            solo_data if solo_data is not None else False,
-            300
-        )
+        # DB 캐시 저장 (언랭=None도 {}로 저장해서 재호출 방지)
+        _user_cache_set(puuid, username, tag, region,
+                        'tft', 'tft_ranked', solo_data or {})
+        _user_cache_set(puuid, username, tag, region,
+                        'tft', 'tft_double_up', double_data or {})
 
-        result = {'success': True, 'solo': solo_data, 'double': double_data}
-        cache.set(full_cache_key, result, 300)
-        return JsonResponse(result)
+        print(f'[TFT RANK] API 호출 solo={str(solo_data)[:40]}', flush=True)
+        return JsonResponse({'success': True, 'solo': solo_data, 'double': double_data, 'cached': False})
 
     except RiotAPIError as e:
         return _handle_error(e)
@@ -317,22 +374,73 @@ def tft_api_getMatchIDs(request):
     if request.method != 'GET':
         return JsonResponse({'success': False, 'message': '잘못된 메서드입니다.'}, status=405)
 
-    puuid  = request.GET.get('puuid',  '').strip()
-    region = request.GET.get('region', 'kr').strip().lower()
-    count  = min(int(request.GET.get('count', 20)), 100)
+    puuid    = request.GET.get('puuid',  '').strip()
+    region   = request.GET.get('region', 'kr').strip().lower()
+    username = request.GET.get('name',   '').strip()
+    tag      = request.GET.get('tag',    '').strip()
+    count    = min(int(request.GET.get('count', 20)), 100)
+
+    qt_param   = request.GET.get('queueType', '').strip()
+    q_slug_map = {
+        'ranked'               : 'tft_ranked',
+        'RANKED_TFT'           : 'tft_ranked',
+        'pairs'                : 'tft_double_up',
+        'RANKED_TFT_DOUBLE_UP' : 'tft_double_up',
+        'standard'             : 'tft_normal',
+    }
+    q_slug = q_slug_map.get(qt_param, 'tft_normal')
 
     if not puuid:
         return JsonResponse({'success': False, 'message': 'puuid가 필요합니다.'}, status=400)
 
+    # DB 캐시 조회 (match_ids 필드 기반, 10분 TTL)
+    try:
+        from .models import Riot_UserINFO, Riot_MatchInfo
+        user = Riot_UserINFO.get_or_none(puuid)
+        if user:
+            obj = Riot_MatchInfo.objects.filter(
+                user=user, game='tft', queue_type=q_slug
+            ).first()
+            if obj:
+                stored_ids = getattr(obj, 'match_ids', None) or []
+                if stored_ids:
+                    age = (timezone.now() - obj.updated_at).total_seconds()
+                    if age <= MATCH_IDS_TTL:
+                        print(f'[TFT MATCH IDS HIT] slug={q_slug} count={len(stored_ids)} age={int(age)}s', flush=True)
+                        return JsonResponse({
+                            'success'     : True,
+                            'matchIds'    : stored_ids,
+                            'lastMatchId' : getattr(obj, 'last_match_id', ''),
+                            'cached'      : True,
+                        })
+                    else:
+                        print(f'[TFT MATCH IDS MISS] TTL 만료 age={int(age)}s', flush=True)
+                else:
+                    print(f'[TFT MATCH IDS MISS] match_ids 비어있음', flush=True)
+    except Exception as ex:
+        print(f'[TFT MATCH IDS] DB 조회 실패(API 폴백): {ex}', flush=True)
+
+    # Riot API 호출
     try:
         _, regional = _get_region_urls(region)
         data = _riot_get(
             f'https://{regional}/tft/match/v1/matches/by-puuid/{puuid}/ids?count={count}'
         )
-        return JsonResponse({
-            'success'  : True,
-            'matchIds' : data if isinstance(data, list) else [],
-        })
+        ids = data if isinstance(data, list) else []
+
+        # match_ids 필드에 저장
+        try:
+            _user_cache_set(
+                puuid, username, tag, region,
+                game='tft', queue_type=q_slug,
+                data={},
+                last_match_id=ids[0] if ids else '',
+                match_ids=ids,
+            )
+        except Exception as ex:
+            print(f'[TFT MATCH IDS] DB 저장 실패(무시): {ex}', flush=True)
+
+        return JsonResponse({'success': True, 'matchIds': ids, 'cached': False})
 
     except RiotAPIError as e:
         return _handle_error(e)
@@ -347,6 +455,13 @@ def tft_api_matchDetail(request, match_id):
 
     region = request.GET.get('region', 'kr').strip().lower()
 
+    # 24시간 캐시 조회 (경기 결과는 불변)
+    cache_key = f'tft_match_detail:{match_id}'
+    cached = _cached_get(cache_key)
+    if cached:
+        print(f'[TFT MATCH HIT] match_id={match_id}', flush=True)
+        return JsonResponse({'success': True, 'match': cached, 'cached': True})
+
     try:
         _, regional = _get_region_urls(region)
         raw        = _riot_get(f'https://{regional}/tft/match/v1/matches/{match_id}')
@@ -356,7 +471,7 @@ def tft_api_matchDetail(request, match_id):
         queue_type = info.get('tft_game_type', '')
         queue_id   = info.get('queue_id', 0)
 
-        # queue_id 기반 fallback (tft_game_type이 비어있거나 매핑 없을 때)
+        # queue_id 기반 폴백 (tft_game_type이 비어있거나 매핑 없을 때)
         if not queue_type or queue_type not in TFT_QUEUE_KO:
             if queue_id in TFT_QUEUE_KO:
                 queue_type = {1090:'standard', 1100:'ranked', 1130:'turbo', 1160:'pairs'}.get(queue_id, queue_type)
@@ -448,9 +563,14 @@ def tft_api_matchDetail(request, match_id):
 
         participants.sort(key=lambda x: x['placement'])
 
+        result = {'matchInfo': match_info, 'participants': participants}
+        # 24시간 캐시 저장
+        _cached_set(cache_key, result)
+
         return JsonResponse({
             'success': True,
-            'match'  : {'matchInfo': match_info, 'participants': participants},
+            'match'  : result,
+            'cached' : False,
         })
 
     except RiotAPIError as e:
@@ -476,7 +596,7 @@ def tft_api_bulk_ranks(request):
         result_map  = {}
         to_fetch    = []
 
-        ## // is cachq
+        # # // is cachq
         for puuid in puuids:
             if not puuid:
                 continue
@@ -491,7 +611,7 @@ def tft_api_bulk_ranks(request):
             flush=True
         )
 
-        ## / isCache -> True == No api or isCache == False == return jsonresponse , exception -> riotapiexceptionhandle
+        # # / isCache -> True == No api or isCache == False == return jsonresponse , exception -> riotapiexceptionhandle
         for puuid in to_fetch:
             try:
                 result = _fetch_rank_cached(platform, puuid, prefer_dbl)
@@ -500,11 +620,11 @@ def tft_api_bulk_ranks(request):
                 result_map[puuid] = None
                 if re.status_code == 429:
                     print(
-                        f'[TFT response] 429 -> 조기 종료 ({len(result_map)}/{len(puuids)})', ## <<< ??
+                        f'[TFT response] 429 -> 조기 종료 ({len(result_map)}/{len(puuids)})',  # # <<< ??
                         flush=True
                     )
                     for remaining in to_fetch:
-                        result_map.setdefault(remaining, None) # << replace -> origin : for
+                        result_map.setdefault(remaining, None)  # << replace -> origin : for
                     break
             except Exception as ex:
                 # return HTTP response 429

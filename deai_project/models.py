@@ -219,10 +219,266 @@ class UserReport(models.Model):
     class Meta:
         db_table = 'user_report'
 
+# ## riot api search user cache table
 
-# ──────────────────────────────────────────────
-#  Riot 데이터 캐시 (JSON blob 전체 보관)
-# ──────────────────────────────────────────────
+class Riot_UserINFO(models.Model):
+    """
+    Riot 유저 기본 정보 캐시 테이블.
+    puuid 기준으로 유저를 식별하며, 마지막 조회 시각을 함께 저장합니다.
+    한 유저가 LOL / TFT / VAL 3개 게임을 모두 플레이하는 경우,
+    Riot_MatchInfo 와 1:N 관계로 게임별 큐 정보를 별도 저장합니다.
+    """
+
+    puuid    = models.CharField(
+        max_length=120, unique=True, db_index=True,
+        verbose_name='PUUID'
+    )
+    username = models.CharField(
+        max_length=40, db_index=True,
+        verbose_name='게임 이름 (gameName)'
+    )
+    tag      = models.CharField(
+        max_length=10,
+        verbose_name='태그 라인 (#tagLine)'
+    )
+    region   = models.CharField(
+        max_length=10, default='kr',
+        verbose_name='지역 (kr / na / euw …)'
+    )
+
+    # Summoner API 필드 - 재검색 시 API 호출 없음 달성에 필요
+    summoner_id     = models.CharField(
+        max_length=100, blank=True, default='',
+        verbose_name='소환사 ID (encrypted)'
+    )
+    profile_icon_id = models.IntegerField(
+        default=0,
+        verbose_name='프로필 아이콘 ID'
+    )
+    summoner_level  = models.IntegerField(
+        default=0,
+        verbose_name='소환사 레벨'
+    )
+
+    # 마지막 조회 시각 (save() 호출 시 auto_now 갱신)
+    last_searched_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='마지막 조회 시각'
+    )
+
+    class Meta:
+        db_table     = 'riot_user_info'
+        verbose_name = 'Riot 유저 정보 캐시'
+
+    def __str__(self):
+        return f'{self.username}#{self.tag} ({self.puuid[:12]}…) [{self.last_searched_at:%Y-%m-%d %H:%M}]'
+
+    @classmethod
+    def get_or_none(cls, puuid: str):
+        try:
+            return cls.objects.get(puuid=puuid)
+        except cls.DoesNotExist:
+            return None
+
+    @classmethod
+    def find_by_name_tag(cls, username: str, tag: str, region: str):
+        """이름#태그로 유저 조회 (대소문자 무시)."""
+        return cls.objects.filter(
+            username__iexact=username,
+            tag__iexact=tag,
+            region=region,
+        ).first()
+
+    @classmethod
+    def upsert(cls, puuid: str, username: str, tag: str, region: str = 'kr',
+               summoner_id: str = '', profile_icon_id: int = 0,
+               summoner_level: int = 0):
+        """
+        유저 정보 저장/갱신.
+        update_or_create 는 auto_now(last_searched_at)를 갱신하지 않으므로
+        get_or_create + save() 로 처리합니다.
+        summoner 필드는 값이 있을 때만 덮어씁니다 (0/빈 문자열 → 기존 값 유지).
+        """
+        obj, created = cls.objects.get_or_create(
+            puuid=puuid,
+            defaults={
+                'username'        : username,
+                'tag'             : tag,
+                'region'          : region,
+                'summoner_id'     : summoner_id,
+                'profile_icon_id' : profile_icon_id,
+                'summoner_level'  : summoner_level,
+            }
+        )
+        if not created:
+            obj.username = username
+            obj.tag      = tag
+            obj.region   = region
+            if summoner_id:
+                obj.summoner_id = summoner_id
+            if profile_icon_id:
+                obj.profile_icon_id = profile_icon_id
+            if summoner_level:
+                obj.summoner_level = summoner_level
+            obj.save()  # auto_now(last_searched_at) 갱신
+        return obj
+
+
+class Riot_MatchInfo(models.Model):
+    # 유저별 게임별 큐타입별 전적 캐시 테이블.
+
+    # 게임 종류(game)와 큐 타입(queue_type) 조합으로 데이터를 구분합니다.
+    # 한 유저가 여러 게임을 동시에 플레이하면 game 값만 다른 row 여러 개가 생성됩니다.
+
+    # LoL 큐 ID : 420(솔로랭크) / 440(자유랭크) / 430(일반) / 450(칼바람)
+    # 900(우르프) / 1700(아레나) 등
+    # TFT 큐 ID : 1100(솔로랭크) / 1160(더블업) / 1090(일반)
+    # VAL 큐 ID : Riot VAL API는 공개 불가 문자열 슬러그로 관리
+    GAME_CHOICES = [
+        ('lol', 'League of Legends'),
+        ('tft', 'Teamfight Tactics'),
+        ('val', 'Valorant'),
+    ]
+
+    QUEUE_CHOICES = [
+        # LoL
+        ('lol_ranked_solo',    'LoL 솔로랭크'),
+        ('lol_ranked_flex',    'LoL 자유랭크'),
+        ('lol_normal',         'LoL 일반'),
+        ('lol_aram',           'LoL 칼바람'),
+        ('lol_urf',            'LoL 우르프'),
+        ('lol_arena',          'LoL 아레나'),
+        # TFT
+        ('tft_ranked',         'TFT 솔로랭크'),
+        ('tft_double_up',      'TFT 더블업'),
+        ('tft_normal',         'TFT 일반'),
+        # Valorant
+        ('val_competitive',    'Valorant 경쟁전'),
+        ('val_unrated',        'Valorant 일반(비경쟁)'),
+        ('val_spike_rush',     'Valorant 스파이크 러쉬'),
+        ('val_deathmatch',     'Valorant 데스매치'),
+        ('val_team_deathmatch','Valorant 팀 데스매치'),
+    ]
+
+    LOL_QUEUE_ID_MAP = {
+        420 : 'lol_ranked_solo',
+        440 : 'lol_ranked_flex',
+        430 : 'lol_normal',
+        450 : 'lol_aram',
+        900 : 'lol_urf',
+        1700: 'lol_arena',
+    }
+    TFT_QUEUE_ID_MAP = {
+        1100: 'tft_ranked',
+        1160: 'tft_double_up',
+        1090: 'tft_normal',
+    }
+
+    user = models.ForeignKey(
+        Riot_UserINFO,
+        on_delete=models.CASCADE,
+        related_name='match_infos',
+        verbose_name='Riot 유저'
+    )
+    game       = models.CharField(max_length=5,  choices=GAME_CHOICES,  verbose_name='게임 종류')
+    queue_type = models.CharField(max_length=25, choices=QUEUE_CHOICES, verbose_name='큐 타입')
+
+    # 가장 최근 경기 ID (전적 갱신 기준점)
+    last_match_id = models.CharField(
+        max_length=30, blank=True, default='',
+        verbose_name='최근 매치 ID'
+    )
+    # 최근 20게임 match_id 목록 (순서 보존)
+    match_ids = models.JSONField(
+        default=list, blank=True,
+        verbose_name='전적 매치 ID 목록 (최대 20개)'
+    )
+    # 랭크 등 기타 캐시 데이터
+    cached_data = models.JSONField(
+        default=dict, blank=True,
+        verbose_name='캐시 데이터 (JSON)'
+    )
+    # 마지막 전적 갱신 시각 (갱신 버튼 3분 쿨다운 기준)
+    last_refresh_at = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name='마지막 전적 갱신 시각'
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='최근 갱신')
+
+    class Meta:
+        db_table        = 'riot_match_info'
+        verbose_name    = 'Riot 전적 캐시'
+        unique_together = ('user', 'game', 'queue_type')
+        indexes = [
+            models.Index(fields=['user', 'game']),
+        ]
+
+    def __str__(self):
+        return (
+            f'{self.user.username}#{self.user.tag} '
+            f'[{self.get_game_display()} / {self.get_queue_type_display()}] '
+            f'{self.updated_at:%Y-%m-%d %H:%M}'
+        )
+
+    def can_refresh(self, cooldown_seconds: int = 180) -> bool:
+        """갱신 쿨다운(기본 3분) 경과 여부."""
+        if self.last_refresh_at is None:
+            return True
+        from datetime import timedelta
+        return timezone.now() - self.last_refresh_at >= timedelta(seconds=cooldown_seconds)
+
+    def seconds_until_refresh(self, cooldown_seconds: int = 180) -> int:
+        """갱신까지 남은 초. 0이면 즉시 가능."""
+        if self.last_refresh_at is None:
+            return 0
+        from datetime import timedelta
+        elapsed   = (timezone.now() - self.last_refresh_at).total_seconds()
+        remaining = cooldown_seconds - elapsed
+        return max(0, int(remaining))
+
+    @classmethod
+    def queue_slug_from_id(cls, game: str, queue_id: int):
+        mapping = cls.LOL_QUEUE_ID_MAP if game == 'lol' else cls.TFT_QUEUE_ID_MAP
+        return mapping.get(queue_id)
+
+    @classmethod
+    def upsert(cls, user, game: str, queue_type: str,
+               cached_data: dict = None, last_match_id: str = '',
+               match_ids: list = None, touch_refresh: bool = False):
+        """
+        게임·큐 조합 기준으로 캐시 저장/갱신.
+        touch_refresh=True 이면 last_refresh_at 을 현재 시각으로 갱신합니다.
+        update_or_create 는 auto_now(updated_at)를 갱신하지 않으므로 save() 직접 호출.
+        """
+        obj, created = cls.objects.get_or_create(
+            user=user,
+            game=game,
+            queue_type=queue_type,
+            defaults={
+                'cached_data'    : cached_data if cached_data is not None else {},
+                'last_match_id'  : last_match_id,
+                'match_ids'      : match_ids if match_ids is not None else [],
+                'last_refresh_at': timezone.now() if touch_refresh else None,
+            }
+        )
+        if not created:
+            update_fields = ['cached_data', 'last_match_id', 'match_ids', 'updated_at']
+            obj.cached_data   = cached_data if cached_data is not None else {}
+            obj.last_match_id = last_match_id
+            if match_ids is not None:
+                obj.match_ids = match_ids
+            if touch_refresh:
+                obj.last_refresh_at = timezone.now()
+                update_fields.append('last_refresh_at')
+            obj.save(update_fields=update_fields)
+        return obj
+
+    @classmethod
+    def get_by_user_game(cls, user, game: str):
+        return cls.objects.filter(user=user, game=game)
+
+
+# ## riot api info page cache table
 
 class RiotDataCache(models.Model):
     """
@@ -368,7 +624,7 @@ class LOL_infoChampionTable(models.Model):
     name= models.CharField(max_length=50, verbose_name='챔피언 이름')
     title= models.CharField(max_length=100, blank=True, verbose_name='타이틀')
     primary_class  = models.CharField(max_length=20, verbose_name='주 포지션')
-    tags= models.JSONField(default=list, verbose_name='태그 목록')   # ["마법사", "암살자"]
+    tags= models.JSONField(default=list, verbose_name='태그 목록')  # ["마법사", "암살자"]
     blurb= models.TextField(blank=True, verbose_name='설명')
     img_url= models.CharField(max_length=200, verbose_name='아이콘 URL')
     splash_url= models.CharField(max_length=200, blank=True, verbose_name='스플래시 URL')

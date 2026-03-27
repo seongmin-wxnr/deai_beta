@@ -1,2 +1,0 @@
-# riotKey = ''
-# SECRET_KEY = ''

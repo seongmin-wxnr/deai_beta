@@ -15,19 +15,20 @@ from django import apps
 from django.apps import *
 import os, sys
 import channels
-from . import config
 from channels.routing import ProtocolTypeRouter 
+
+from pathlib import Path
+from decouple import config, Csv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 
-SECRET_KEY = 'django-insecure-g-d@+#t)g+-)z9p(iv_%!*fezj9((^#v17^(gyo0#hdvcxd2)n'
-RIOT_API_KEY = 'RGAPI-60454db5-c7d9-46d1-a4f9-71f928ac5917'
+SECRET_KEY = config('SECRET_KEY')
+RIOT_API_KEY = config('RIOT_API_KEY')
 RIOT_DD_VERSION = '16.5.1'
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -155,10 +156,10 @@ CSRF_TRUSTED_ORIGINS = [
 # 이메일 설정 (Gmail SMTP)
 EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST          = 'smtp.gmail.com'
-EMAIL_PORT          = 587
+EMAIL_PORT          = config('EMAIL_PORT')
 EMAIL_USE_TLS       = True
-EMAIL_HOST_USER     = 'yuilove9105@gmail.com'
-EMAIL_HOST_PASSWORD = 'dnjwthew etqylovb'     
+EMAIL_HOST_USER     = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')     
 DEFAULT_FROM_EMAIL  = EMAIL_HOST_USER
 
 RIOT_REGION_MAP = {
