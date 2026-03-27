@@ -1,10 +1,4 @@
-tft v1 matc
 
-995597027","KR_7987715871","KR_7980426695","KR_7980372274","KR_7980174013","KR_7978096648","KR_7978014020","KR_7977909455","KR_7971266624","KR_7971208238","KR_7962126137","KR_7962084445","KR_7962042870","KR_7944846734","KR_7933372315","KR_7922004643","KR_7920544390","KR_7909417410","KR_7901008227","KR_7892008897"]
-
-tft v1 acc based puuid
-
-[{"puuid":"aNswl8ibMhY3vDRoOfZfLiUxlPa8GRXaUghfs-CoCqeM266u21Yk91FGYAoKzdZHMlBowK-bx7wbUw","leagueId":"1bf81ed8-25ac-3747-aa1b-918a88ab1efb","queueType":"RANKED_TFT","tier":"CHALLENGER","rank":"I","leaguePoints":1452,"wins":438,"losses":332,"veteran":true,"inactive":false,"freshBlood":false,"hotStreak":false}]
 
 json resp
 js data return value

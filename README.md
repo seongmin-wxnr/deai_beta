@@ -1,30 +1,22 @@
-# deai
 
-2026-03-03
-채팅 기능 얼추 추가됌 .
-이따 밥 먹고 더 해야할 듯, 
+### Config
+- Riot Game API KEY = https://developer.riotgames.com
+- Django KEY = "your project key.."
+- RIOT DD VERSION = 'most recent dd verison'
+- DEBUG -> normally False
+- EMAIL_HOST = 'smtp.google.com'
+- EMAIL_HOST_USER = 'your Gmail'
+- EMAIL_HOST_PASSWORD = 'password (not your gmail password)'
+- DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
---> 게시판 삭제 , 유저 인원 카운트도 해야함
+### about deai
 
-2026-03-04
+deai.gg is a test web platform that supports party recruitment and match history lookup for Riot Games titles such as League of Legends, VALORANT, and Teamfight Tactics.
 
-- 게시판 삭제
-- 친구 추가 / 삭제
-- 유저 검색
-- 알림 (현재는 친구 요청 같은 알림만)
-- 프로필 확인 기능
-- 게시판 관련 기능 추가됌 (이미 가입된 게시글이 존재하면 다른 게시글에 가입 불가 , 게시물 가입 탈퇴)
---> 채팅 관련 테이블 생성 후 기록 보관으로 바꿔야함 , 유저 엑티브 여부 봐야함
+At this time, VALORANT is not yet supported because it requires approval for the Riot Games API as well as an RSO application.
 
-2026-03-05
-1. 채팅 기능 보완
-2. 유저 검색 → 친구 추가 → 수락 / 거절 → 최종 추가
-3. 게시글 단체 채팅 , 친구간의 DM 기능
-4. 웹 상에서 추가 정보 제공
-5. 게시물 관리 기능 (아직 미완성)
-6. 알림 기능
+Currently, I have implemented the basic structure for match history lookup for League of Legends and Teamfight Tactics using other Riot Games APIs. Additionally, I have created pages that provide both general and detailed information (such as items, synergies, champions, weapons, etc) for all three games: League of Legends, Teamfight Tactics, and VALORANT. Since access to VALORANT data is limited, so I used an alternative API (valorant-api) to build the VALORANT-related information pages.
 
--> 현재 생각나는 수정 사항
-1. 채팅 DB 저장 방식을 수정해야할거같음. -> db 크기 때문에
-2. 코드를 좀 더 최적화 및 코드 가독성
-3. 클랜 기능도 추가해볼 생각
+deai.gg is still in the preparation. If I am granted a Production API Key by Riot Games, I plan to complete the VALORANT implementation and deploy the service for a one-month testing period.
+
+As mentioned above, if it denied, I will use the valorant-api as a substitute for Riot Games API to provide VALORANT-related search and information features.
