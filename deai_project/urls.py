@@ -82,12 +82,14 @@ urlpatterns = [
     ## riot api
     ## valorant 
     # riot/val/ + userinfo
-    path("ValorantSearch/", riot_apiValorant.riot_api_VRTUserPageRendering,name='ValorantSearch'),
-    path("riot/val/user/",riot_apiValorant.riot_api_VRTUserPageRendering, name='riot_val_user'),
-    path("api/val/account/", riot_apiValorant.val_api_search_account, name='val_api_account'),
-    path("api/val/matches/", riot_apiValorant.val_api_getMatchIDs, name='val_api_matches'),
-    path("api/val/match/<str:match_id>/", riot_apiValorant.val_api_matchDetail,name='val_api_match_detail'),
-    path("api/val/rank/", riot_apiValorant.val_api_getRank, name='val_api_rank'),
+
+    ## ADD LATER
+    # path("ValorantSearch/", riot_apiValorant.riot_api_VRTUserPageRendering,name='ValorantSearch'),
+    # path("riot/val/user/",riot_apiValorant.riot_api_VRTUserPageRendering, name='riot_val_user'),
+    # path("api/val/account/", riot_apiValorant.val_api_search_account, name='val_api_account'),
+    # path("api/val/matches/", riot_apiValorant.val_api_getMatchIDs, name='val_api_matches'),
+    # path("api/val/match/<str:match_id>/", riot_apiValorant.val_api_matchDetail,name='val_api_match_detail'),
+    # path("api/val/rank/", riot_apiValorant.val_api_getRank, name='val_api_rank'),
     
 
     ## riot api
