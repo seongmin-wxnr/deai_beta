@@ -38,3 +38,4 @@ tzlocal==5.3.1
 ujson==5.11.0
 urllib3==2.6.3
 zope.interface==8.2
+python-decouple==3.8
