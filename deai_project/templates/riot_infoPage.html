@@ -72,7 +72,7 @@
       word-break: keep-all; width: 100%;
     }
 
-    /* ── 챔피언 모달 ── */
+    /* ── 챔피언 모달 (LoL) ── */
     #champ-modal-overlay {
       display: none;
       position: fixed; inset: 0; z-index: 2000;
@@ -87,33 +87,67 @@
     #champ-modal {
       background: var(--bg2);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      width: 100%; max-width: 900px;
-      max-height: 90vh; overflow: hidden;
+      border-radius: 8px;
+      width: 100%; max-width: 600px;
+      max-height: 88vh; overflow: hidden;
       display: flex; flex-direction: column;
       animation: cmSlideUp .22s ease;
       position: relative;
     }
     @keyframes cmSlideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
-    .cm-header {
-      display: grid; grid-template-columns: 320px 1fr;
-      position: relative; min-height: 200px; flex-shrink: 0;
+
+    /* ── Flat 헤더: 단색 배경 + 우상단 썸네일 ── */
+    .cm-header-flat {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 20px 20px 18px;
+      background: linear-gradient(135deg, #1c1400 0%, #100e00 100%);
+      border-bottom: 1px solid rgba(200,155,60,0.2);
+      border-top: 3px solid var(--gold);
+      position: relative;
+      flex-shrink: 0;
+      min-height: 110px;
     }
-    .cm-splash { position: relative; overflow: hidden; background: var(--bg3); }
-    .cm-splash img { width:100%; height:100%; object-fit:cover; object-position:center 15%; display:block; }
-    .cm-splash-overlay {
-      position:absolute; inset:0;
-      background:linear-gradient(90deg, transparent 50%, var(--bg2) 95%);
+    .cm-header-flat::after {
+      content:''; position:absolute; inset:0; pointer-events:none;
+      background:radial-gradient(ellipse 60% 100% at 100% 50%, rgba(200,155,60,0.12) 0%, transparent 70%);
     }
-    .cm-info { padding:28px 32px 20px; display:flex; flex-direction:column; justify-content:center; gap:8px; }
-    .cm-position-badge { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--red-light); }
-    .cm-champ-name { font-size:36px; font-weight:700; letter-spacing:2px; color:var(--text-bright); line-height:1; }
-    .cm-champ-title { font-size:13px; color:var(--text-muted); letter-spacing:.5px; }
-    .cm-champ-desc { font-size:13px; color:var(--text-sub); line-height:1.8; margin-top:4px; }
-    .cm-skills { padding:20px 24px 24px; border-top:1px solid var(--border); overflow-y:auto; }
-    .cm-skill-tabs { display:flex; gap:10px; margin-bottom:18px; }
-    .cm-skill-tab { display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; transition:all .15s; }
-    .cm-skill-tab-img { width:56px; height:56px; border-radius:4px; overflow:hidden; border:2px solid var(--border); background:var(--bg3); transition:border-color .15s; }
+    /* 우상단 썸네일 */
+    .cm-header-flat-thumb {
+      position: absolute;
+      top: 12px; right: 48px;
+      width: 76px; height: 76px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid rgba(200,155,60,0.6);
+      box-shadow: 0 0 16px rgba(200,155,60,0.25);
+      background: var(--bg3);
+    }
+    .cm-header-flat-thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover; object-position: center top;
+      display: block;
+    }
+    .cm-header-flat-info {
+      flex: 1;
+      padding-right: 136px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      position: relative; z-index: 1;
+    }
+
+    .cm-position-badge { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--gold); }
+    .cm-champ-name { font-size:26px; font-weight:700; letter-spacing:1.5px; color:var(--text-bright); line-height:1.1; }
+    .cm-champ-title { font-size:12px; color:var(--text-muted); letter-spacing:.5px; }
+    .cm-champ-desc { font-size:12px; color:var(--text-sub); line-height:1.7; margin-top:2px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+
+    .cm-skills { padding:16px 20px 20px; border-top:1px solid var(--border); overflow-y:auto; flex:1; }
+    .cm-skill-tabs { display:flex; gap:8px; margin-bottom:14px; overflow-x:auto; scrollbar-width:none; }
+    .cm-skill-tabs::-webkit-scrollbar { display:none; }
+    .cm-skill-tab { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; transition:all .15s; flex-shrink:0; }
+    .cm-skill-tab-img { width:50px; height:50px; border-radius:4px; overflow:hidden; border:2px solid var(--border); background:var(--bg3); transition:border-color .15s; }
     .cm-skill-tab-img img { width:100%; height:100%; object-fit:cover; display:block; }
     .cm-skill-tab-key { font-size:10px; font-weight:700; letter-spacing:1.5px; color:var(--text-muted); text-transform:uppercase; }
     .cm-skill-tab.active .cm-skill-tab-img { border-color:var(--red); box-shadow:0 0 10px var(--red-glow); }
@@ -121,47 +155,34 @@
     .cm-skill-tab:hover .cm-skill-tab-img { border-color:var(--text-sub); }
     .cm-skill-desc {
       background:var(--bg3); border:1px solid var(--border); border-radius:4px;
-      padding:16px 20px; animation:cmFadeIn .15s ease;
-      display:grid; grid-template-columns:80px 1fr; gap:16px; align-items:flex-start;
+      padding:14px 16px; animation:cmFadeIn .15s ease;
+      display:grid; grid-template-columns:72px 1fr; gap:14px; align-items:flex-start;
     }
     .cm-skill-icon-box {
-      display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0;
+      display:flex; flex-direction:column; align-items:center; gap:5px; flex-shrink:0;
     }
     .cm-skill-icon-box img {
-      width:64px; height:64px; border-radius:4px; border:2px solid var(--red);
-      box-shadow:0 0 12px var(--red-glow); display:block; object-fit:cover;
+      width:56px; height:56px; border-radius:4px; border:2px solid var(--red);
+      box-shadow:0 0 10px var(--red-glow); display:block; object-fit:cover;
     }
     .cm-skill-icon-key {
-      font-size:12px; font-weight:700; letter-spacing:2px;
+      font-size:11px; font-weight:700; letter-spacing:2px;
       color:var(--red); text-transform:uppercase;
     }
     .cm-skill-body { min-width:0; }
-    .cm-skill-name { font-size:16px; font-weight:700; color:var(--text-bright); margin-bottom:6px; }
-    .cm-skill-text { font-size:13px; color:var(--text-sub); line-height:1.8; margin-bottom:10px; }
-    .cm-skill-stats { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .cm-skill-name { font-size:15px; font-weight:700; color:var(--text-bright); margin-bottom:5px; }
+    .cm-skill-text { font-size:12px; color:var(--text-sub); line-height:1.75; margin-bottom:8px; }
+    .cm-skill-stats { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
     .cm-skill-stat {
-      font-size:11px; font-weight:700; padding:3px 10px; border-radius:3px;
+      font-size:11px; font-weight:700; padding:2px 9px; border-radius:3px;
       background:rgba(200,155,60,.12); border:1px solid rgba(200,155,60,.3);
       color:var(--gold);
     }
     .cm-skill-cooldown { background:rgba(96,165,250,.1); border-color:rgba(96,165,250,.3); color:#93c5fd; }
     .cm-skill-cost     { background:rgba(59,130,246,.1); border-color:rgba(59,130,246,.3); color:#7dd3fc; }
     .cm-skill-range    { background:rgba(74,222,128,.1); border-color:rgba(74,222,128,.3); color:#86efac; }
-    @media (max-width:600px) {
-      .cm-skill-desc { grid-template-columns:1fr; }
-      .cm-skill-icon-box { flex-direction:row; justify-content:flex-start; }
-    }
-    .cm-close { position:absolute; top:14px; right:14px; z-index:10; width:32px; height:32px; border-radius:4px; background:rgba(0,0,0,.5); border:1px solid var(--border); color:var(--text-muted); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+    .cm-close { position:absolute; top:12px; right:12px; z-index:10; width:30px; height:30px; border-radius:4px; background:rgba(0,0,0,.5); border:1px solid var(--border); color:var(--text-muted); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; }
     .cm-close:hover { background:var(--red-dim); border-color:var(--red); color:var(--red-light); }
-    @media (max-width:700px) {
-      .cm-header { grid-template-columns:1fr; }
-      .cm-splash  { min-height:200px; }
-      .cm-splash-overlay { background:linear-gradient(to top, var(--bg2) 0%, transparent 60%); }
-      .cm-info { padding:20px 16px 16px; }
-      .cm-champ-name { font-size:26px; }
-      .cm-skill-tab-img { width:48px; height:48px; }
-      .cm-skills { padding:16px; }
-    }
 
     /* ── 아이템 모달 ── */
     #item-modal-overlay {
@@ -513,7 +534,7 @@
     }
     .tft-subtab:hover { color:var(--text); }
     .tft-subtab.active { color:#b497e0; border-bottom-color:var(--tft); }
-    .tft-subsection { display:none; flex-direction:column; gap:40px; padding-top:40px; }
+    .tft-subsection { display:none; flex-direction:column; gap:40px; padding-top:28px; }
     .tft-subsection.active { display:flex; animation:cmFadeIn .2s ease; }
     /* ── 시너지 그리드 ── */
     /* ══ 시너지 그리드 ══ */
@@ -628,38 +649,60 @@
     }
     #tcm-overlay.open { display:flex; }
     #tcm-modal {
-      background:var(--bg2); border-radius:6px; width:100%; max-width:860px; max-height:90vh;
+      background:var(--bg2); border-radius:8px; width:100%; max-width:520px; max-height:88vh;
       overflow:hidden; display:flex; flex-direction:column;
       animation:cmSlideUp .22s ease; position:relative;
     }
-    /* 헤더: 스플래시 + 정보 */
-    .tcm-header {
-      display:grid; grid-template-columns:220px 1fr;
-      min-height:200px; flex-shrink:0; position:relative; overflow:hidden;
+    /* ── Flat 헤더: 단색 배경 + 우상단 썸네일 ── */
+    .tcm-header-flat {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 20px 20px 18px;
+      background: linear-gradient(135deg, #1a1530 0%, #0e0c1c 100%);
+      border-bottom: 1px solid rgba(138,99,210,0.25);
+      border-top: 3px solid var(--tft);
+      position: relative;
+      flex-shrink: 0;
+      min-height: 110px;
     }
-    .tcm-splash {
-      position:relative; overflow:hidden; background:var(--bg3);
+    .tcm-header-flat::after {
+      content:''; position:absolute; inset:0; pointer-events:none;
+      background:radial-gradient(ellipse 60% 100% at 100% 50%, rgba(138,99,210,0.15) 0%, transparent 70%);
     }
-    .tcm-splash img {
-      width:100%; height:100%; object-fit:cover; object-position:center top;
-      display:block;
+    /* 우상단 썸네일 */
+    .tcm-header-flat-thumb {
+      position: absolute;
+      top: 12px; right: 48px;
+      width: 76px; height: 76px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid rgba(138,99,210,0.7);
+      box-shadow: 0 0 18px rgba(138,99,210,0.35);
+      background: var(--bg3);
+      flex-shrink: 0;
     }
-    .tcm-splash-overlay {
-      position:absolute; inset:0;
-      background:linear-gradient(90deg, transparent 50%, var(--bg2) 95%);
+    .tcm-header-flat-thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover; object-position: center top;
+      display: block;
     }
-    .tcm-info {
-      padding:24px 28px; display:flex; flex-direction:column;
-      justify-content:center; gap:10px; position:relative;
+    .tcm-header-flat-info {
+      flex: 1;
+      padding-right: 136px; /* 썸네일 76px + 닫기 48px + 여백 */
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative; z-index: 1;
     }
     .tcm-cost-badge {
       font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
     }
     .tcm-name {
-      font-size:32px; font-weight:700; letter-spacing:2px;
-      color:var(--text-bright); line-height:1;
+      font-size:26px; font-weight:700; letter-spacing:1.5px;
+      color:var(--text-bright); line-height:1.1;
     }
-    .tcm-traits { display:flex; flex-wrap:wrap; gap:6px; }
+    .tcm-traits { display:flex; flex-wrap:wrap; gap:5px; }
     .tcm-trait-chip {
       display:flex; align-items:center; gap:5px; font-size:11px; font-weight:700;
       letter-spacing:.5px; padding:3px 10px; border-radius:3px;
@@ -708,11 +751,7 @@
     }
     .tcm-close:hover { background:var(--tft-dim); border-color:var(--tft); color:#b497e0; }
     @media (max-width:640px) {
-      .tcm-header { grid-template-columns:1fr; }
-      .tcm-splash { min-height:160px; }
-      .tcm-name { font-size:24px; }
-      .tcm-ability { grid-template-columns:48px 1fr; }
-      .tcm-ability-icon { width:48px; height:48px; }
+      /* TFT 챔피언 모달 모바일 스타일 — riotInfoPage.css에서 통합 관리 */
     }
 
     /* ══ TFT 아이템 모달 ══ */
@@ -905,6 +944,124 @@
       white-space: pre-line; border-top: 1px solid var(--border); padding-top: 14px;
     }
 
+    /* ══ 사이드바 & 모바일 NAV — 인라인 통합 ══ */
+    .nav-mobile-hide { /* 기본: 보임 */ }
+    .nav-divider-mobile-hide { display:inline-block; }
+
+    /* 햄버거 버튼 — 기본 숨김 */
+    .info-nav-hamburger {
+      display: none;
+      flex-direction: column; justify-content: center; align-items: center;
+      gap: 5px; width: 34px; height: 34px;
+      background: var(--red-dim); border: 1px solid var(--border-red);
+      border-radius: 5px; cursor: pointer; padding: 0; flex-shrink: 0;
+      transition: background 0.2s; margin-left: 6px;
+    }
+    .info-nav-hamburger span {
+      display: block; width: 15px; height: 2px;
+      background: var(--red); border-radius: 2px;
+    }
+
+    /* 오버레이 */
+    .info-sidebar-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(2px);
+      z-index: 1100;
+    }
+    .info-sidebar-overlay.open { display: block; }
+
+    /* 사이드바 패널 */
+    .info-nav-sidebar {
+      position: fixed; top: 0; right: -280px; width: 260px; height: 100dvh;
+      background: rgba(10,10,10,0.99); border-left: 1px solid rgba(255,70,84,0.3);
+      z-index: 1200; display: flex; flex-direction: column;
+      transition: right 0.32s cubic-bezier(0.4,0,0.2,1);
+      overflow-y: auto; box-shadow: -8px 0 40px rgba(0,0,0,0.8);
+    }
+    .info-nav-sidebar.open { right: 0; }
+
+    .info-sidebar-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 16px 14px; border-bottom: 1px solid #242424;
+    }
+    .info-sidebar-title { display: flex; align-items: center; }
+    .info-sidebar-close {
+      display: flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; background: rgba(255,255,255,0.04);
+      border: 1px solid #242424; border-radius: 5px; cursor: pointer;
+      color: #a09888; transition: all 0.2s;
+    }
+    .info-sidebar-close:hover { background: var(--red-dim); border-color: var(--border-red); color: var(--red-light); }
+    .info-sidebar-section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: #605850; padding: 14px 16px 6px;
+    }
+    .info-sidebar-menu {
+      display: flex; flex-direction: column; padding: 0 10px 12px; gap: 3px;
+    }
+    .info-sidebar-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      background: none; border: none; border-radius: 5px; cursor: pointer;
+      font-family: var(--font-ui); font-size: 14px; font-weight: 600;
+      color: #a09888; text-align: left; transition: all 0.18s;
+    }
+    .info-sidebar-item:hover { background: var(--red-dim); color: var(--red-light); }
+    .info-sidebar-item--danger:hover { background: rgba(200,48,42,0.1); color: #f87171; }
+
+    /* 모바일 반응형 */
+    @media (max-width: 700px) {
+      .info-nav-hamburger    { display: flex !important; }
+      .nav-mobile-hide       { display: none !important; }
+      .nav-divider-mobile-hide { display: none !important; }
+      .nav { height: 52px !important; padding: 0 14px !important; }
+      .nav-links { gap: 3px; margin-left: auto; display: flex; align-items: center; overflow: hidden; }
+      .nav-link  { font-size: 11px !important; padding: 4px 7px !important; letter-spacing: 0.5px !important; }
+      .nav-logo-sub { display: none !important; }
+      .page-wrapper { padding-top: 52px; }
+
+      /* 모달 — 화면 정중앙 배치 */
+      #tcm-overlay, #champ-modal-overlay {
+        padding: 16px;
+        align-items: center;
+        justify-content: center;
+      }
+      #tcm-modal, #champ-modal {
+        border-radius: 12px;
+        max-height: 86vh;
+        width: 100%;
+        max-width: 100%;
+        margin: auto;
+      }
+      /* TFT 바디 2열 */
+      .tcm-body { display: grid; grid-template-columns: 1fr 1fr; overflow-y: auto; }
+      .tcm-stats-grid { grid-template-columns: repeat(2,1fr); gap: 5px; }
+      .tcm-stat-card  { padding: 7px 8px; }
+      .tcm-stat-val   { font-size: 13px; }
+      .tcm-section    { padding: 12px 12px; }
+      .tcm-section-title { font-size: 9px; margin-bottom: 7px; padding-bottom: 6px; }
+      .tcm-ability    { grid-template-columns: 42px 1fr; gap: 8px; }
+      .tcm-ability-icon { width: 42px; height: 42px; }
+      .tcm-ability-name { font-size: 13px; }
+      .tcm-ability-desc { font-size: 12px; line-height: 1.6; }
+
+      /* 헤더 썸네일 작게 */
+      .tcm-header-flat { min-height: 95px; padding: 14px 14px 12px; }
+      .tcm-header-flat-thumb { width: 62px; height: 62px; top: 10px; right: 44px; }
+      .tcm-header-flat-info  { padding-right: 114px; }
+      .tcm-name { font-size: 20px; }
+
+      .cm-header-flat { min-height: 95px; padding: 14px 14px 12px; }
+      .cm-header-flat-thumb { width: 62px; height: 62px; top: 10px; right: 44px; }
+      .cm-header-flat-info  { padding-right: 114px; }
+      .cm-champ-name { font-size: 20px; }
+      .cm-skill-desc { grid-template-columns: 52px 1fr; gap: 10px; padding: 10px 12px; }
+      .cm-skill-icon-box img { width: 44px; height: 44px; }
+
+      /* TFT subnav: nav 52px 기준 sticky top 보정 + 틈 제거 */
+      .tft-subnav { top: 52px !important; }
+      #section-tft .section-inner { padding-top: 0 !important; }
+    }
+
   </style>
 </head>
 <body>
@@ -915,15 +1072,79 @@
     <span class="nav-logo-sub">RIOT</span>
   </a>
   <div class="nav-links">
-    <a class="nav-link active" href="#" onclick="showGame('lol',this);return false;">LoL</a>
-    <a class="nav-link" href="#" onclick="showGame('vrt',this);return false;">VALORANT</a>
-    <a class="nav-link" href="#" onclick="showGame('tft',this);return false;">TFT</a>
-    <button class="nav-back" onclick="location.href='/RiotRanking/'">랭킹페이지</button>
-    <button class="nav-back" onclick="location.href='/RiotSearch/'">검색으로</button>
-    <button class="nav-back" onclick="location.href='/Deai_main/'">메인으로</button>
-    <button class="nav-back" onclick="location.href='/DestroyTeemo/'">티모 없애기</button>
+    <a class="nav-link active" id="nav-lol" href="#" onclick="showGame('lol',this);return false;">LoL</a>
+    <a class="nav-link" id="nav-vrt" href="#" onclick="showGame('vrt',this);return false;">VALORANT</a>
+    <a class="nav-link" id="nav-tft" href="#" onclick="showGame('tft',this);return false;">TFT</a>
+    <span class="nav-divider-mobile-hide" style="width:1px;height:18px;background:var(--border);margin:0 6px;"></span>
+    <button class="nav-back nav-mobile-hide" onclick="location.href='/RiotRanking/'">랭킹페이지</button>
+    <button class="nav-back nav-mobile-hide" onclick="location.href='/RiotSearch/'">검색으로</button>
+    <button class="nav-back nav-mobile-hide" onclick="location.href='/Deai_main/'">메인으로</button>
+    <button class="nav-back nav-mobile-hide" onclick="location.href='/DestroyTeemo/'">티모 없애기</button>
+    <button class="info-nav-hamburger" id="info-nav-hamburger" onclick="openInfoSidebar()" aria-label="메뉴 열기">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+
+<!-- 사이드바 오버레이 -->
+<div class="info-sidebar-overlay" id="info-sidebar-overlay" onclick="closeInfoSidebar()"></div>
+
+<!-- 우측 슬라이드 사이드바 -->
+<aside class="info-nav-sidebar" id="info-nav-sidebar">
+  <div class="info-sidebar-header">
+    <span class="info-sidebar-title">
+      <span style="font-size:16px;font-weight:700;letter-spacing:2px;color:var(--red);">DEAI</span>
+      <span style="color:var(--text-muted);margin:0 6px;">×</span>
+      <span style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--red-light);">MENU</span>
+    </span>
+    <button class="info-sidebar-close" onclick="closeInfoSidebar()" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px;">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="info-sidebar-section-label">게임 선택</div>
+  <nav class="info-sidebar-menu">
+    <button class="info-sidebar-item info-sidebar-game-btn" id="sb-btn-lol" onclick="showGame('lol', document.querySelector('.nav-link'));closeInfoSidebar()">
+      <span style="font-size:16px;">⚔️</span> LoL
+    </button>
+    <button class="info-sidebar-item info-sidebar-game-btn" id="sb-btn-vrt" onclick="showGame('vrt', document.querySelectorAll('.nav-link')[1]);closeInfoSidebar()">
+      <span style="font-size:16px;">🎯</span> VALORANT
+    </button>
+    <button class="info-sidebar-item info-sidebar-game-btn" id="sb-btn-tft" onclick="showGame('tft', document.querySelectorAll('.nav-link')[2]);closeInfoSidebar()">
+      <span style="font-size:16px;">♟️</span> TFT
+    </button>
+  </nav>
+
+  <div class="info-sidebar-section-label">페이지</div>
+  <nav class="info-sidebar-menu">
+    <button class="info-sidebar-item" onclick="closeInfoSidebar();location.href='/RiotSearch/'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+      검색으로
+    </button>
+    <button class="info-sidebar-item" onclick="closeInfoSidebar();location.href='/Deai_main/'">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex-shrink:0;">
+        <path d="M3 10L10 3l7 7"/><path d="M5 8v8h4v-4h2v4h4V8"/>
+      </svg>
+      메인으로
+    </button>
+    <button class="info-sidebar-item" onclick="closeInfoSidebar();location.href='/RiotRanking/'">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex-shrink:0;">
+        <rect x="2" y="12" width="4" height="6" rx="1"/><rect x="8" y="8" width="4" height="10" rx="1"/><rect x="14" y="4" width="4" height="14" rx="1"/>
+      </svg>
+      랭킹 페이지
+    </button>
+    <button class="info-sidebar-item info-sidebar-item--danger" onclick="closeInfoSidebar();location.href='/DestroyTeemo/'">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex-shrink:0;">
+        <circle cx="10" cy="10" r="8"/><line x1="7" y1="7" x2="13" y2="13"/><line x1="13" y1="7" x2="7" y2="13"/>
+      </svg>
+      티모 없애기
+    </button>
+  </nav>
+</aside>
 
 <div class="page-wrapper">
   <div class="hero">
@@ -1210,7 +1431,7 @@
   </div>
 
   <div class="section" id="section-tft">
-    <div class="section-inner" style="gap:0;padding-top:32px;">
+    <div class="section-inner" style="gap:0;padding-top:0;padding-bottom:80px;">
 
       <!-- ── TFT 서브탭 네비게이션 ── -->
       <nav class="tft-subnav">
@@ -2958,12 +3179,12 @@ document.addEventListener('keydown', e => {
 <div id="tcm-overlay" onclick="if(event.target===this)closeTcModal()">
   <div id="tcm-modal">
     <button class="tcm-close" onclick="closeTcModal()">✕</button>
-    <div class="tcm-header">
-      <div class="tcm-splash">
+    <!-- 새 헤더: 단색 배경 + 우상단 썸네일 -->
+    <div class="tcm-header-flat">
+      <div class="tcm-header-flat-thumb">
         <img id="tcm-splash" src="" alt=""/>
-        <div class="tcm-splash-overlay"></div>
       </div>
-      <div class="tcm-info">
+      <div class="tcm-header-flat-info">
         <div class="tcm-cost-badge" id="tcm-cost-badge">—</div>
         <div class="tcm-name" id="tcm-name">—</div>
         <div class="tcm-traits" id="tcm-traits"></div>
@@ -2994,12 +3215,12 @@ document.addEventListener('keydown', e => {
 <div id="champ-modal-overlay" onclick="if(event.target===this)closeChampModal()">
   <div id="champ-modal">
     <button class="cm-close" onclick="closeChampModal()">✕</button>
-    <div class="cm-header">
-      <div class="cm-splash">
+    <!-- 새 헤더: 단색 배경 + 우상단 썸네일 -->
+    <div class="cm-header-flat">
+      <div class="cm-header-flat-thumb">
         <img id="cm-splash-img" src="" alt=""/>
-        <div class="cm-splash-overlay"></div>
       </div>
-      <div class="cm-info">
+      <div class="cm-header-flat-info">
         <div class="cm-position-badge" id="cm-position">—</div>
         <div class="cm-champ-name" id="cm-name">—</div>
         <div class="cm-champ-title" id="cm-title">—</div>
@@ -3008,12 +3229,10 @@ document.addEventListener('keydown', e => {
     </div>
     <!-- 스킬 섹션 -->
     <div class="cm-skills">
-      <div class="cm-skill-tabs" id="cm-skill-tabs">
-        <!-- JS로 생성 -->
-      </div>
+      <div class="cm-skill-tabs" id="cm-skill-tabs"></div>
       <div class="cm-skill-desc" id="cm-skill-desc-box">
         <div class="cm-skill-icon-box">
-          <div style="width:64px;height:64px;border-radius:4px;background:var(--bg4);border:2px solid var(--border);"></div>
+          <div style="width:56px;height:56px;border-radius:4px;background:var(--bg4);border:2px solid var(--border);"></div>
           <div class="cm-skill-icon-key">—</div>
         </div>
         <div class="cm-skill-body">
@@ -3041,6 +3260,23 @@ document.addEventListener('keydown', e => {
     <div class="aug-modal-desc" id="aug-modal-desc"></div>
   </div>
 </div>
+
+<script>
+/* ── 정보 페이지 사이드바 ── */
+function openInfoSidebar() {
+  document.getElementById('info-nav-sidebar').classList.add('open');
+  document.getElementById('info-sidebar-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeInfoSidebar() {
+  document.getElementById('info-nav-sidebar').classList.remove('open');
+  document.getElementById('info-sidebar-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeInfoSidebar();
+});
+</script>
 
 </body>
 </html>
