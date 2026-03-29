@@ -1325,54 +1325,10 @@ body::after {
   }
 }
 
-/* Mobile */
+/* Mobile — 검색 페이지 전용 규칙 */
 @media (max-width: 768px) {
-  .nav {
-    height: auto;
-    min-height: 60px;
-    padding: 10px 14px;
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .nav-logo {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .nav-right {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .game-switch-group {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-    padding: 6px;
-    overflow: visible;
-  }
-
-  .game-switch-btn {
-    width: 100%;
-    justify-content: center;
-    padding-left: 8px !important;
-    padding-right: 8px !important;
-    font-size: 11px !important;
-    line-height: 1.2;
-    text-align: center;
-    min-height: 42px;
-    white-space: normal;
-  }
-
-  .nav-main-link {
-    justify-content: center;
-    width: 100%;
-    min-height: 38px;
-  }
+  /* nav 규칙은 유저페이지와 충돌하므로 이 블록에서 제거됨
+     유저페이지 nav는 파일 맨 끝 블록에서 처리 */
 
   .page-wrapper {
     padding-top: 146px;
@@ -1798,4 +1754,63 @@ body::after {
     background: inherit !important;
     z-index: auto !important;
   }
+}
+
+/* ══════════════════════════════════════════════════════
+   LoL 유저페이지 — 모바일 nav 최우선 픽스
+   (이 파일이 riot_lol.css 이후에 로드되므로 여기서 최종 결정)
+   ══════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* nav: 로고(좌) + 햄버거(우) 단 1행, 52px 고정 */
+  .nav {
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+    padding: 0 14px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+    gap: 0 !important;
+  }
+
+  /* 로고는 좌측 고정 */
+  .nav-logo {
+    width: auto !important;
+    flex-shrink: 0 !important;
+    justify-content: flex-start !important;
+  }
+
+  /* 인라인 검색창 완전 숨김 */
+  .nav-inline-search {
+    display: none !important;
+    width: 0 !important;
+    max-width: 0 !important;
+    flex: 0 0 0px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  /* 데스크탑 전용 요소 숨김 */
+  .nav-back-desktop { display: none !important; }
+  .nav-menu-desktop { display: none !important; }
+
+  /* 햄버거: 우측에 완전히 표시 */
+  .nav-hamburger {
+    display: flex !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    margin-left: auto !important;
+    width: 36px !important;
+    height: 36px !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* 유저페이지 wrapper 패딩 */
+  .userpage-wrap { padding-top: 64px !important; }
 }
