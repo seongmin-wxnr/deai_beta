@@ -8,6 +8,74 @@
   <link rel="stylesheet" href="{% static 'css/riot_lol.css' %}">
   <!-- riot_userpagemodalscroll -->
   <link rel="stylesheet" href="{% static 'css/riot_userpagemodalscroll.css' %}">
+  <style>
+  /* ══ LoL 유저페이지 nav 확정 스타일 — 모든 외부 CSS 충돌 차단 ══ */
+
+  /* 데스크탑 (769px+): 인라인 검색 표시, 햄버거 숨김 */
+  @media (min-width: 769px) {
+    .nav {
+      height: 60px !important;
+      padding: 0 32px !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      flex-wrap: nowrap !important;
+      overflow: visible !important;
+    }
+    .nav-inline-search {
+      display: flex !important;
+      align-items: center !important;
+      flex: 1 !important;
+      max-width: 440px !important;
+      margin: 0 28px !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+    }
+    .nav-hamburger { display: none !important; }
+    .nav-back-desktop { display: flex !important; }
+  }
+
+  /* 모바일 (≤768px): 로고(좌) + 햄버거(우) 1행 */
+  @media (max-width: 768px) {
+    .nav {
+      height: 52px !important;
+      min-height: 52px !important;
+      max-height: 52px !important;
+      padding: 0 14px !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      flex-wrap: nowrap !important;
+      overflow: visible !important;
+      gap: 0 !important;
+    }
+    .nav-logo {
+      width: auto !important;
+      flex-shrink: 0 !important;
+      justify-content: flex-start !important;
+    }
+    .nav-inline-search {
+      display: none !important;
+      width: 0 !important;
+      flex: 0 0 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    .nav-back-desktop { display: none !important; }
+    .nav-hamburger {
+      display: flex !important;
+      flex-shrink: 0 !important;
+      margin-left: auto !important;
+      width: 36px !important;
+      height: 36px !important;
+    }
+    .userpage-wrap { padding-top: 64px !important; }
+    .page-wrapper  { padding-top: 52px !important; }
+  }
+  </style>
 </head>
 <body>
 
@@ -18,8 +86,8 @@
     <span class="nav-logo-sub" id="nav-game-label">League of Legends</span>
   </a>
 
-  <!-- 네브바 인라인 검색 (모바일에서는 숨김) -->
-  <div class="nav-inline-search" style="display:flex;align-items:center;flex:1;max-width:440px;margin:0 28px;">
+  <!-- 네브바 인라인 검색 (모바일에서는 숨김 — display 인라인 스타일 제거) -->
+  <div class="nav-inline-search" style="align-items:center;flex:1;max-width:440px;margin:0 28px;">
     <div id="nav-search-box"
          style="display:flex;align-items:center;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px 0 0 6px;flex:1;overflow:hidden;transition:border-color 0.2s;"
          onfocusin="this.style.borderColor='var(--gold)'"
@@ -59,7 +127,7 @@
   </button>
 
   <!-- 모바일: 햄버거 버튼 -->
-  <button class="nav-hamburger" id="nav-hamburger" onclick="openUserSidebar()" aria-label="메뉴 열기">
+  <button class="nav-hamburger" id="nav-hamburger" onclick="openUserSidebar()" aria-label="메뉴 열기" style="margin-left:auto;">
     <span></span><span></span><span></span>
   </button>
 </nav>
@@ -994,11 +1062,15 @@ function openUserSidebar() {
   document.getElementById('nav-sidebar').classList.add('open');
   document.getElementById('sidebar-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+  /* nav를 오버레이 아래로 — 햄버거가 사이드바 위에 떠있는 문제 해결 */
+  document.querySelector('.nav').style.zIndex = '900';
 }
 function closeUserSidebar() {
   document.getElementById('nav-sidebar').classList.remove('open');
   document.getElementById('sidebar-overlay').classList.remove('open');
   document.body.style.overflow = '';
+  /* nav z-index 복원 */
+  document.querySelector('.nav').style.zIndex = '';
 }
 
 /* ── 사이드바 내 검색 ── */
