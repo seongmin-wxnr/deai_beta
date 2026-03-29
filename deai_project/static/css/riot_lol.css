@@ -1513,7 +1513,7 @@ body::after {
   inset: 0;
   background: rgba(0,0,0,0.6);
   backdrop-filter: blur(2px);
-  z-index: 1100;
+  z-index: 1100;   /* nav(1000)보다 높음 */
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -1531,7 +1531,7 @@ body::after {
   height: 100dvh;
   background: rgba(13,17,23,0.98);
   border-left: 1px solid var(--border-bright);
-  z-index: 1200;
+  z-index: 1200;   /* 오버레이(1100)보다 높음 */
   display: flex;
   flex-direction: column;
   transition: right 0.32s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1639,8 +1639,16 @@ body::after {
   .nav-hamburger { display: flex !important; }
   .nav-menu-desktop { display: none !important; }
   .nav-back-desktop { display: none !important; }
+  /* 인라인 검색창 완전 숨김 — flex 포함 모든 display 값 차단 */
+  .nav-inline-search {
+    display: none !important;
+    flex: none !important;
+    width: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
 
-  /* nav: 1행 — 로고(좌) + 게임스위치(중) + 햄버거(우) */
+  /* nav: 1행 — 로고(좌) + 햄버거(우) */
   .nav {
     height: 52px !important;
     min-height: 52px !important;
