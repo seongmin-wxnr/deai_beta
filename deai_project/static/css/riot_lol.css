@@ -1221,28 +1221,16 @@ body::after {
 }
 
 @media (max-width: 768px) {
-  /* 레이아웃 */
+  /* 레이아웃 — nav 1행 52px 기준 */
   .userpage-wrap {
     grid-template-columns: 1fr;
-    padding: 76px 10px 28px;
+    padding: 64px 10px 28px;
     gap: 12px;
   }
   .sidebar { gap: 10px; }
 
-  /* 네브바 */
-  .nav {
-    padding: 0 12px;
-    height: 52px;
-    gap: 6px;
-  }
+  /* 네브바 — 사이드바 섹션에서 통합 관리 */
   .nav-logo-sub { display: none; }
-
-  /* 네브바 검색 박스 축소 */
-  .nav > div[style*="max-width:440px"] {
-    margin: 0 8px !important;
-    max-width: none !important;
-    flex: 1 !important;
-  }
 
   /* 매치 카드 */
   .match-card {
@@ -1279,7 +1267,7 @@ body::after {
 }
 
 @media (max-width: 480px) {
-  .userpage-wrap { padding: 70px 8px 24px; }
+  .userpage-wrap { padding: 64px 8px 24px; }
 
   /* 매치 카드 더 축소 */
   .match-card { grid-template-columns: 62px 1fr; }
@@ -1295,18 +1283,11 @@ body::after {
   .stats-bar-item { padding: 10px 6px; }
 }
 
-/* ===== Search page nav + tag alignment final responsive fix ===== */
-.search-tag-sep {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  line-height: 1;
-}
+/* ===== Mobile Nav — compact 2-row layout ===== */
 
+/* 기본 (desktop) */
 .game-switch-btn .label-short { display: none; }
-.game-switch-btn .label-full { display: inline; }
+.game-switch-btn .label-full  { display: inline; }
 
 .nav-right {
   display: flex;
@@ -1336,31 +1317,34 @@ body::after {
   flex: 0 0 auto;
 }
 
+/* ── Desktop nav (769px+) ── */
 @media (min-width: 769px) {
   .nav {
     display: flex !important;
+    flex-direction: row;
     align-items: center;
     justify-content: space-between;
+    height: 60px;
+    padding: 0 24px;
     gap: 20px;
-    overflow: hidden;
+    overflow: visible;
   }
 
-  .nav-logo {
-    flex: 0 0 auto;
-    min-width: max-content;
-  }
+  .nav-logo { flex: 0 0 auto; min-width: max-content; }
 
   .nav-right {
-    flex: 0 1 auto;
-    justify-content: flex-end;
-    width: auto !important;
-    max-width: calc(100vw - 260px);
-    overflow: hidden;
+    flex: 0 0 auto;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 12px;
   }
 
   .game-switch-group {
-    flex: 0 1 auto;
-    min-width: 0;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 6px;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
@@ -1370,40 +1354,57 @@ body::after {
   .game-switch-btn {
     flex-direction: row !important;
     font-size: 12px !important;
+    width: auto !important;
+    min-width: max-content;
   }
 }
 
+/* ── Mobile nav (≤768px) — 2행 compact ── */
 @media (max-width: 768px) {
   .nav {
-    height: auto;
-    min-height: 52px;
-    padding: 8px 12px;
-    display: flex !important;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
     position: fixed;
     top: 0; left: 0; right: 0;
     z-index: 1000;
+    height: auto;
+    padding: 8px 12px 6px;
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    background: rgba(8,12,16,0.95);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
   }
 
-  /* 첫 행: 로고 + 검색으로 버튼 */
-  .nav > .nav-logo { align-self: center; }
+  /* 1행: 로고(좌) + 메뉴버튼(우) 가로 배치 */
+  .nav-row-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .nav > .nav-logo {
+    /* 기존 nav-logo가 직접 자식일 때도 처리 */
+  }
 
   .nav-right {
     width: 100%;
     display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 8px;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow: hidden;
   }
 
+  /* 게임 선택 그룹 — 2행: 3열 그리드, 아이콘+short label */
   .game-switch-group {
     width: 100%;
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 5px;
-    padding: 5px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 4px;
     border-radius: 8px;
     overflow: visible;
   }
@@ -1411,33 +1412,37 @@ body::after {
   .game-switch-btn {
     width: 100% !important;
     min-width: 0 !important;
-    min-height: 38px;
-    padding: 5px 4px !important;
-    flex-direction: column !important;
-    gap: 3px !important;
-    font-size: 10px !important;
-    line-height: 1.15 !important;
-    white-space: normal !important;
-    text-align: center;
+    min-height: 34px;
+    height: 34px;
+    padding: 0 4px !important;
+    flex-direction: row !important;
+    gap: 4px !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    justify-content: center;
+    overflow: hidden;
   }
 
-  .game-switch-btn .label-full { display: none; }
+  .game-switch-btn .label-full  { display: none; }
   .game-switch-btn .label-short { display: inline; }
 
   .game-switch-btn svg {
-    width: 12px !important;
-    height: 12px !important;
+    width: 11px !important;
+    height: 11px !important;
     flex-shrink: 0;
   }
 
+  /* 메뉴 버튼들: 가로 한 줄 스크롤 */
   .nav-main-link {
-    width: 100%;
-    justify-content: center;
+    flex-shrink: 0;
+    font-size: 11px !important;
+    padding: 0 6px;
+    min-height: 32px;
+    white-space: nowrap;
   }
 
-  .search-tag-sep {
-    pointer-events: none;
-  }
+  .search-tag-sep { pointer-events: none; }
 }
 
 /* ─── iOS Safari safe-area 대응 ─── */
@@ -1454,5 +1459,233 @@ body::after {
   .tab-btn { min-height: 44px; }
   .match-card { min-height: 64px; }
   .btn-outline, button { min-height: 40px; }
-  .game-switch-btn { min-height: 44px; }
+  .game-switch-btn { min-height: 36px; }
+}
+
+/* ─── 유저페이지: 모바일 nav 인라인 검색 숨김 ─── */
+@media (max-width: 768px) {
+  .nav-inline-search { display: none !important; }
+  /* nav가 1행(로고 + 검색으로 버튼)만 남으므로 높이 52px 고정 */
+  .userpage-wrap { padding-top: 68px; }
+}
+/* ═══════════════════════════════════════════════
+   햄버거 버튼 + 우측 슬라이드 사이드바
+   ═══════════════════════════════════════════════ */
+
+/* ── 햄버거 버튼 (모바일에서만 표시) ── */
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  background: rgba(200,155,60,0.08);
+  border: 1px solid var(--border-bright);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.nav-hamburger:hover { background: rgba(200,155,60,0.16); }
+.nav-hamburger span {
+  display: block;
+  width: 16px;
+  height: 2px;
+  background: var(--gold);
+  border-radius: 2px;
+  transition: all 0.25s;
+}
+
+/* ── 데스크탑 메뉴 ── */
+.nav-menu-desktop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── 오버레이 ── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(2px);
+  z-index: 1100;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.sidebar-overlay.open {
+  display: block;
+  opacity: 1;
+}
+
+/* ── 사이드바 패널 ── */
+.nav-sidebar {
+  position: fixed;
+  top: 0;
+  right: -280px;
+  width: 260px;
+  height: 100dvh;
+  background: rgba(13,17,23,0.98);
+  border-left: 1px solid var(--border-bright);
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  transition: right 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  box-shadow: -8px 0 40px rgba(0,0,0,0.6);
+}
+.nav-sidebar.open { right: 0; }
+
+/* ── 사이드바 헤더 ── */
+.nav-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.nav-sidebar-title {
+  display: flex;
+  align-items: center;
+}
+.nav-sidebar-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-sub);
+  transition: all 0.2s;
+}
+.nav-sidebar-close:hover {
+  background: rgba(200,155,60,0.1);
+  border-color: var(--border-bright);
+  color: var(--gold);
+}
+
+/* ── 사이드바 내 검색 ── */
+.nav-sidebar-search {
+  display: flex;
+  align-items: stretch;
+  margin: 14px 14px 4px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+/* ── 섹션 라벨 ── */
+.nav-sidebar-section-label {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 14px 16px 6px;
+}
+
+/* ── 메뉴 리스트 ── */
+.nav-sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  padding: 0 10px 20px;
+  gap: 4px;
+}
+.nav-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-sub);
+  letter-spacing: 0.3px;
+  text-align: left;
+  transition: all 0.18s;
+}
+.nav-sidebar-item:hover {
+  background: rgba(200,155,60,0.08);
+  color: var(--gold);
+}
+.nav-sidebar-item:hover svg {
+  stroke: var(--gold);
+}
+.nav-sidebar-item--danger { color: var(--text-muted); }
+.nav-sidebar-item--danger:hover {
+  background: rgba(200,48,42,0.1);
+  color: #f87171;
+}
+.nav-sidebar-item--danger:hover svg { stroke: #f87171; }
+
+/* ── 데스크탑 nav 복원 버튼 숨김 ── */
+.nav-back-desktop { display: flex; }
+
+/* ── 반응형 ── */
+@media (max-width: 768px) {
+  /* 햄버거 표시, 데스크탑 메뉴 숨김 */
+  .nav-hamburger { display: flex !important; }
+  .nav-menu-desktop { display: none !important; }
+  .nav-back-desktop { display: none !important; }
+
+  /* nav: 1행 — 로고(좌) + 게임스위치(중) + 햄버거(우) */
+  .nav {
+    height: 52px !important;
+    min-height: 52px !important;
+    padding: 0 12px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  /* 게임 스위치 그룹: 1행 가로 배치 (grid 해제) */
+  .game-switch-group {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 3px 5px !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex: 1;
+    min-width: 0;
+  }
+  .game-switch-group::-webkit-scrollbar { display: none; }
+
+  .game-switch-btn {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 30px !important;
+    height: 30px !important;
+    padding: 0 8px !important;
+    flex-direction: row !important;
+    gap: 4px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+
+  /* page-wrapper — nav 1행 52px 기준 */
+  .page-wrapper { padding-top: 52px !important; }
+  .userpage-wrap { padding-top: 64px !important; }
+  .search-hero { min-height: calc(100svh - 52px) !important; }
+}
+
+@media (min-width: 769px) {
+  /* 사이드바/오버레이 데스크탑에서 강제 닫힘 */
+  .nav-sidebar { right: -280px !important; }
+  .sidebar-overlay { display: none !important; }
 }
