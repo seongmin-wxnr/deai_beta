@@ -37,11 +37,6 @@
     <span class="nav-logo-sub">Riot Games API</span>
   </a>
 
-  <!-- <a class="nav-logo" href="/Valorant/">
-    <span class="nav-logo-text">DEAI</span>
-    <span class="nav-logo-sep">×</span>
-    <span class="nav-logo-sub">Valorant</span>
-  </a> -->
   <div class="nav-right" style="display:flex;align-items:center;gap:12px;">
     <!-- 게임 전환 버튼 -->
     <div class="game-switch-group" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:4px 6px;">
@@ -56,7 +51,7 @@
               onmouseover="if(currentGame!=='val'){this.style.borderColor='rgba(255,70,84,0.4)';this.style.color='#ff4654';this.style.background='rgba(255,70,84,0.08)'}"
               onmouseout="if(currentGame!=='val'){this.style.borderColor='transparent';this.style.color='var(--text-muted)';this.style.background='none'}">
         <svg viewBox="0 0 20 20" fill="currentColor" style="width:13px;height:13px;"><path d="M3 10l7-8 7 8-7 2-7-2z" opacity="0.7"/><path d="M3 10l7 2 7-2-7 8-7-8z"/></svg>
-        <span class="label-full">VALORANT : API 연결 없음</span>
+        <span class="label-full">VALORANT</span>
         <span class="label-short">VALORANT</span>
       </button>
       <button class="game-switch-btn" id="btn-tft" onclick="switchGame('tft')"
@@ -67,29 +62,72 @@
           <polygon points="10,2 17,6 17,14 10,18 3,14 3,6" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.8"/>
           <circle cx="10" cy="10" r="2.5" fill="currentColor" opacity="0.9"/>
         </svg>
-        <span class="label-full">TFT : 페이지/기능 미완성</span>
+        <span class="label-full">TFT</span>
         <span class="label-short">TFT</span>
       </button>
-
     </div>
 
-    <button class="nav-back nav-main-link" onclick="navigateTo('/Deai_main/')">
-      <!-- <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
-      </svg> -->
-      메인으로
-    </button>
-    <button class="nav-back nav-main-link" onclick="navigateTo('/RiotInfo/')">
-      정보 페이지
-    </button>
-    <button class="nav-back nav-main-link" onclick="navigateTo('/RiotRanking/')">
-      랭킹 페이지
-    </button>
-    <button class="nav-back nav-main-link" onclick="navigateTo('/DestroyTeemo/')">
-      티모 없애기
+    <!-- 데스크탑: 메뉴 버튼들 -->
+    <div class="nav-menu-desktop">
+      <button class="nav-back nav-main-link" onclick="navigateTo('/Deai_main/')">메인으로</button>
+      <button class="nav-back nav-main-link" onclick="navigateTo('/RiotInfo/')">정보 페이지</button>
+      <button class="nav-back nav-main-link" onclick="navigateTo('/RiotRanking/')">랭킹 페이지</button>
+      <button class="nav-back nav-main-link" onclick="navigateTo('/DestroyTeemo/')">티모 없애기</button>
+    </div>
+
+    <!-- 모바일: 햄버거 버튼 -->
+    <button class="nav-hamburger" id="nav-hamburger" onclick="openSidebar()" aria-label="메뉴 열기">
+      <span></span><span></span><span></span>
     </button>
   </div>
-</nav>  
+</nav>
+
+<!-- 사이드바 오버레이 -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- 우측 슬라이드 사이드바 -->
+<aside class="nav-sidebar" id="nav-sidebar">
+  <div class="nav-sidebar-header">
+    <span class="nav-sidebar-title">
+      <span style="font-family:var(--font-display);color:var(--gold);font-size:16px;font-weight:700;letter-spacing:2px;">DEAI</span>
+      <span style="color:var(--text-muted);margin:0 6px;">×</span>
+      <span style="font-family:var(--font-ui);color:var(--blue);font-size:12px;font-weight:600;letter-spacing:1px;">MENU</span>
+    </span>
+    <button class="nav-sidebar-close" onclick="closeSidebar()" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px;">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="nav-sidebar-section-label">페이지</div>
+  <nav class="nav-sidebar-menu">
+    <button class="nav-sidebar-item" onclick="closeSidebar();navigateTo('/Deai_main/')">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex-shrink:0;">
+        <path d="M3 10L10 3l7 7"/><path d="M5 8v8h4v-4h2v4h4V8"/>
+      </svg>
+      메인으로
+    </button>
+    <button class="nav-sidebar-item" onclick="closeSidebar();navigateTo('/RiotInfo/')">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex-shrink:0;">
+        <circle cx="10" cy="10" r="8"/><line x1="10" y1="9" x2="10" y2="14"/><circle cx="10" cy="6.5" r="0.8" fill="currentColor"/>
+      </svg>
+      정보 페이지
+    </button>
+    <button class="nav-sidebar-item" onclick="closeSidebar();navigateTo('/RiotRanking/')">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex-shrink:0;">
+        <rect x="2" y="12" width="4" height="6" rx="1"/><rect x="8" y="8" width="4" height="10" rx="1"/><rect x="14" y="4" width="4" height="14" rx="1"/>
+      </svg>
+      랭킹 페이지
+    </button>
+    <button class="nav-sidebar-item nav-sidebar-item--danger" onclick="closeSidebar();navigateTo('/DestroyTeemo/')">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex-shrink:0;">
+        <circle cx="10" cy="10" r="8"/><line x1="7" y1="7" x2="13" y2="13"/><line x1="13" y1="7" x2="7" y2="13"/>
+      </svg>
+      티모 없애기
+    </button>
+  </nav>
+</aside>  
 
 <div class="page-wrapper" style="position:relative;z-index:1;">
   <div class="search-hero">
@@ -324,10 +362,36 @@ function showValorantToast() {
 function navigateTo(url) { document.body.style.transition='opacity .3s,transform .3s'; document.body.style.opacity='0'; document.body.style.transform='translateY(-8px)'; setTimeout(()=>location.href=url,280); }
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+/* ── 사이드바 ── */
+function openSidebar() {
+  document.getElementById('nav-sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+  document.getElementById('nav-sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeSidebar(); });
+
 ['name-input','tag-input'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{ if(e.key==='Enter') doSearch(); }));
 document.getElementById('tag-input').addEventListener('input',e=>{ e.target.value=e.target.value.replace(/^#/,''); });
 (()=>{ const p=new URLSearchParams(location.search); if(p.get('name')) document.getElementById('name-input').value=p.get('name'); if(p.get('tag')) document.getElementById('tag-input').value=p.get('tag'); if(p.get('region')) document.getElementById('region-select').value=p.get('region'); })();
 renderRecent();
+
+/* ── 모바일: nav 높이에 따라 page-wrapper padding-top 동적 보정 ── */
+function adjustNavPadding() {
+  const nav = document.querySelector('.nav');
+  const wrapper = document.querySelector('.page-wrapper');
+  if (!nav || !wrapper) return;
+  const h = nav.getBoundingClientRect().height;
+  wrapper.style.paddingTop = h + 'px';
+  const hero = document.querySelector('.search-hero');
+  if (hero) hero.style.minHeight = 'calc(100svh - ' + h + 'px)';
+}
+adjustNavPadding();
+window.addEventListener('resize', adjustNavPadding);
 
 window.addEventListener('pageshow', (e) => {
   const overlay = document.getElementById('goto-loading');
