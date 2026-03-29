@@ -15,11 +15,11 @@
   <a class="nav-logo" href="/Deai_main/" style="flex-shrink:0;">
     <span class="nav-logo-text">DEAI</span>
     <span class="nav-logo-sep">×</span>
-    <span class="nav-logo-sub">League of Legends</span>
+    <span class="nav-logo-sub" id="nav-game-label">League of Legends</span>
   </a>
 
-  <!-- 네브바 인라인 검색 -->
-  <div style="display:flex;align-items:center;flex:1;max-width:440px;margin:0 28px;">
+  <!-- 네브바 인라인 검색 (모바일에서는 숨김) -->
+  <div class="nav-inline-search" style="display:flex;align-items:center;flex:1;max-width:440px;margin:0 28px;">
     <div id="nav-search-box"
          style="display:flex;align-items:center;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px 0 0 6px;flex:1;overflow:hidden;transition:border-color 0.2s;"
          onfocusin="this.style.borderColor='var(--gold)'"
@@ -50,13 +50,79 @@
     </button>
   </div>
 
-  <button class="nav-back" onclick="navigateTo('/RiotSearch/')" style="flex-shrink:0;">
+  <!-- 데스크탑: 검색으로 버튼 -->
+  <button class="nav-back nav-back-desktop" onclick="navigateTo('/RiotSearch/')" style="flex-shrink:0;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
     </svg>
     검색으로
   </button>
+
+  <!-- 모바일: 햄버거 버튼 -->
+  <button class="nav-hamburger" id="nav-hamburger" onclick="openUserSidebar()" aria-label="메뉴 열기">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
+
+<!-- 사이드바 오버레이 -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeUserSidebar()"></div>
+
+<!-- 우측 슬라이드 사이드바 -->
+<aside class="nav-sidebar" id="nav-sidebar">
+  <div class="nav-sidebar-header">
+    <span class="nav-sidebar-title">
+      <span style="font-family:var(--font-display);color:var(--gold);font-size:16px;font-weight:700;letter-spacing:2px;">DEAI</span>
+      <span style="color:var(--text-muted);margin:0 6px;">×</span>
+      <span style="font-family:var(--font-ui);color:var(--blue);font-size:12px;font-weight:600;letter-spacing:1px;">MENU</span>
+    </span>
+    <button class="nav-sidebar-close" onclick="closeUserSidebar()" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px;">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 모바일 인라인 검색 (사이드바 내) -->
+  <div class="nav-sidebar-search">
+    <div style="display:flex;align-items:center;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px 0 0 6px;flex:1;overflow:hidden;">
+      <input id="sidebar-name-input" type="text" placeholder="소환사 이름" autocomplete="off" spellcheck="false"
+             style="background:none;border:none;outline:none;padding:10px 10px;font-family:var(--font-ui);font-size:14px;color:var(--text-bright);flex:1;min-width:0;"
+             onkeydown="if(event.key==='Enter')sidebarSearch()"/>
+      <span style="color:var(--text-muted);font-size:15px;padding:0 4px;flex-shrink:0;">#</span>
+      <input id="sidebar-tag-input" type="text" placeholder="KR1" maxlength="8" autocomplete="off" spellcheck="false"
+             style="background:none;border:none;outline:none;padding:10px 8px;font-family:var(--font-ui);font-size:14px;color:var(--text-bright);width:72px;flex-shrink:0;"
+             onkeydown="if(event.key==='Enter')sidebarSearch()"/>
+    </div>
+    <button onclick="sidebarSearch()"
+            style="background:var(--gold);border:none;border-radius:0 6px 6px 0;width:44px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" style="width:16px;height:16px;">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="nav-sidebar-section-label">페이지</div>
+  <nav class="nav-sidebar-menu">
+    <button class="nav-sidebar-item" onclick="closeUserSidebar();navigateTo('/RiotSearch/')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+      검색으로
+    </button>
+    <button class="nav-sidebar-item" onclick="closeUserSidebar();navigateTo('/Deai_main/')">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex-shrink:0;">
+        <path d="M3 10L10 3l7 7"/><path d="M5 8v8h4v-4h2v4h4V8"/>
+      </svg>
+      메인으로
+    </button>
+    <button class="nav-sidebar-item" onclick="closeUserSidebar();navigateTo('/RiotRanking/')">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex-shrink:0;">
+        <rect x="2" y="12" width="4" height="6" rx="1"/><rect x="8" y="8" width="4" height="10" rx="1"/><rect x="14" y="4" width="4" height="14" rx="1"/>
+      </svg>
+      랭킹 페이지
+    </button>
+  </nav>
+</aside>
 
 <div class="page-wrapper">
   <div class="userpage-wrap">
@@ -923,6 +989,31 @@ function showToast(msg, duration=2800) {
 function navigateTo(url) { document.body.style.transition='opacity .3s,transform .3s'; document.body.style.opacity='0'; document.body.style.transform='translateY(-8px)'; setTimeout(()=>location.href=url,280); }
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+/* ── 사이드바 ── */
+function openUserSidebar() {
+  document.getElementById('nav-sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeUserSidebar() {
+  document.getElementById('nav-sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ── 사이드바 내 검색 ── */
+async function sidebarSearch() {
+  const name   = document.getElementById('sidebar-name-input').value.trim();
+  const tag    = document.getElementById('sidebar-tag-input').value.trim();
+  const region = document.getElementById('nav-region-select')?.value || 'kr';
+  if (!name) { document.getElementById('sidebar-name-input').focus(); return; }
+  closeUserSidebar();
+  // nav-name-input에 값 복사 후 navSearch 재활용
+  document.getElementById('nav-name-input').value = name;
+  document.getElementById('nav-tag-input').value  = tag;
+  navSearch();
+}
+
 /* ─── 초기화 ─── */
 async function init() {
   parseParams();
@@ -1121,7 +1212,12 @@ window.addEventListener('pageshow', (e) => {
     document.body.style.transform = 'none';
   }
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMatchModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeMatchModal();
+    closeUserSidebar();
+  }
+});
 </script>
 </body>
 
