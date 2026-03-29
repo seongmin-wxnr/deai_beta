@@ -1337,72 +1337,27 @@ body::after {
 
 /* Mobile */
 @media (max-width: 768px) {
-  .nav {
-    height: auto;
-    min-height: 60px;
-    padding: 10px 14px;
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .nav-logo {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .nav-right {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .game-switch-group {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-    padding: 6px;
-    overflow: visible;
-  }
-
-  .game-switch-btn {
-    width: 100%;
-    justify-content: center;
-    padding-left: 8px !important;
-    padding-right: 8px !important;
-    font-size: 11px !important;
-    line-height: 1.2;
-    text-align: center;
-    min-height: 42px;
-    white-space: normal;
-  }
-
-  .nav-main-link {
-    justify-content: center;
-    width: 100%;
-    min-height: 38px;
-  }
+  /* nav 레이아웃은 riot_lol.css 사이드바 섹션에서 통합 관리 (1행 52px) */
 
   .page-wrapper {
-    padding-top: 146px;
+    padding-top: 52px; /* nav 1행 52px — JS adjustNavPadding()으로 동적 보정 */
   }
 
   .search-hero {
-    min-height: calc(100svh - 146px);
-    padding: 34px 16px 28px;
+    min-height: calc(100svh - 52px);
+    padding: 28px 16px 28px;
   }
 
   .search-title {
     font-size: clamp(32px, 11vw, 52px);
     letter-spacing: 1.5px;
     line-height: 1.05;
-    max-width: 7ch;
-    margin-bottom: 16px;
+    max-width: 8ch;
+    margin-bottom: 14px;
   }
 
   .search-subtitle {
-    margin-bottom: 28px;
+    margin-bottom: 24px;
   }
 
   .search-box,
@@ -1412,22 +1367,31 @@ body::after {
   }
 
   .search-input-wrap {
-    grid-template-columns: 56px minmax(0, 1fr);
+    display: grid;
+    grid-template-columns: 60px minmax(0, 1fr);
     grid-template-areas:
       "region region"
-      "name name"
-      "sep tag"
+      "name   name"
+      "sep    tag"
       "button button";
   }
 
-  .search-region-select { grid-area: region; border-right: none; border-bottom: 1px solid var(--border); }
-  .search-name-input { grid-area: name; border-top: none; border-bottom: 1px solid rgba(200,155,60,0.10); }
+  .search-region-select {
+    grid-area: region;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .search-name-input {
+    grid-area: name;
+    border-top: none;
+    border-bottom: 1px solid rgba(200,155,60,0.10);
+  }
   .search-tag-sep {
     grid-area: sep;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 54px;
+    height: 52px;
     border-right: 1px solid rgba(200,155,60,0.10);
     border-bottom: 1px solid rgba(200,155,60,0.10);
     pointer-events: none;
@@ -1441,7 +1405,8 @@ body::after {
   .search-btn {
     grid-area: button;
     width: 100%;
-    border-radius: 0;
+    border-radius: 0 0 6px 6px;
+    height: 48px;
   }
 
   .search-hint {
@@ -1450,19 +1415,13 @@ body::after {
     padding: 0 4px;
   }
 
-  .recent-label {
-    text-align: left;
-  }
+  .recent-label { text-align: left; }
 
   .recent-list,
-  .server-status {
-    justify-content: center;
-  }
+  .server-status { justify-content: center; }
 
   .recent-chip,
-  .server-chip {
-    max-width: 100%;
-  }
+  .server-chip { max-width: 100%; }
 
   .toast {
     left: 16px;
@@ -1473,181 +1432,22 @@ body::after {
 }
 
 @media (max-width: 420px) {
-  .page-wrapper {
-    padding-top: 154px;
-  }
-
   .search-hero {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .search-title {
     font-size: clamp(28px, 10vw, 42px);
-    max-width: 8ch;
-  }
-
-  .game-switch-btn {
-    font-size: 10.5px !important;
   }
 }
 
 
-/* ===== Desktop nav stability fix ===== */
-@media (min-width: 769px) {
+/* ─── iOS Safari safe-area 대응 ─── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  body { padding-bottom: env(safe-area-inset-bottom); }
   .nav {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    flex-wrap: nowrap;
-  }
-
-  .nav-logo {
-    flex: 0 0 auto;
-    min-width: max-content;
-  }
-
-  .nav-right {
-    flex: 1 1 auto;
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 12px;
-    min-width: 0;
-  }
-
-  .game-switch-group {
-    flex: 0 1 auto;
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center;
-    justify-content: flex-end;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    max-width: min(100%, 980px);
-    scrollbar-width: none;
-  }
-
-  .game-switch-group::-webkit-scrollbar {
-    display: none;
-  }
-
-  .game-switch-btn {
-    flex: 0 0 auto;
-  }
-
-  .nav-main-link {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
-}
-
-
-/* ===== Final nav fix ===== */
-.nav {
-  overflow: visible;
-}
-
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.game-switch-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.game-switch-btn {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center;
-  white-space: nowrap;
-  word-break: keep-all;
-  line-height: 1;
-  flex: 0 0 auto;
-}
-
-.nav-main-link {
-  white-space: nowrap;
-  flex: 0 0 auto;
-}
-
-@media (min-width: 769px) {
-  .nav {
-    display: grid !important;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    column-gap: 20px;
-    height: 60px;
-    min-height: 60px;
-    padding: 0 24px;
-  }
-
-  .nav-logo {
-    grid-column: 1;
-    justify-self: start;
-    min-width: max-content;
-  }
-
-  .nav-right {
-    grid-column: 3;
-    justify-self: end;
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 12px;
-    width: max-content;
-    max-width: none;
-    min-width: max-content;
-    flex: 0 0 auto;
-  }
-
-  .game-switch-group {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center;
-    justify-content: flex-end;
-    flex-wrap: nowrap !important;
-    width: max-content;
-    min-width: max-content;
-    max-width: none;
-    overflow: visible;
-    padding: 0;
-    border: none;
-    background: transparent;
-  }
-
-  .game-switch-btn {
-    width: auto !important;
-    min-width: max-content;
-    min-height: 34px;
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-    font-size: 12px !important;
-    text-align: center;
-    white-space: nowrap !important;
-  }
-
-  .nav-main-link {
-    width: auto;
-    min-width: max-content;
-    justify-content: center;
-  }
-}
-
-@media (max-width: 768px) {
-  .search-input-wrap {
-    grid-template-columns: 56px minmax(0, 1fr);
-  }
-
-  .search-tag-sep {
-    pointer-events: none;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
   }
 }
