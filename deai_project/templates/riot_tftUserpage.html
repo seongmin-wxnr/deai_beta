@@ -326,6 +326,90 @@ body::after {
   .tier-stat       { padding:7px 2px; }
 }
 
+/* ══ TFT 모바일 NAV + 사이드바 ══ */
+
+/* 햄버거 버튼 — 기본 숨김 */
+.tft-nav-hamburger {
+  display: none;
+  flex-direction: column; justify-content: center; align-items: center;
+  gap: 5px; width: 34px; height: 34px;
+  background: rgba(138,99,210,0.12); border: 1px solid rgba(138,99,210,0.35);
+  border-radius: 6px; cursor: pointer; padding: 0; flex-shrink: 0; transition: background 0.2s;
+}
+.tft-nav-hamburger span {
+  display: block; width: 15px; height: 2px;
+  background: var(--pur-light); border-radius: 2px;
+}
+
+/* 사이드바 오버레이 */
+.tft-sidebar-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65); backdrop-filter: blur(2px); z-index: 1100;
+}
+.tft-sidebar-overlay.open { display: block; }
+
+/* 사이드바 패널 */
+.tft-nav-sidebar {
+  position: fixed; top: 0; right: -280px; width: 260px; height: 100dvh;
+  background: rgba(7,6,14,0.99); border-left: 1px solid var(--border-pur);
+  z-index: 1200; display: flex; flex-direction: column;
+  transition: right 0.32s cubic-bezier(0.4,0,0.2,1);
+  overflow-y: auto; box-shadow: -8px 0 40px rgba(0,0,0,0.8);
+}
+.tft-nav-sidebar.open { right: 0; }
+
+.tft-sidebar-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 16px 14px; border-bottom: 1px solid var(--border);
+}
+.tft-sidebar-close {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+  color: var(--text-sub); transition: all 0.2s;
+}
+.tft-sidebar-close:hover { background: var(--pur-dim); border-color: var(--border-pur); color: var(--pur-light); }
+
+/* 사이드바 내 검색 */
+.tft-sidebar-search {
+  display: flex; align-items: stretch;
+  margin: 14px 14px 4px; border-radius: 6px; overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.tft-sidebar-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text-muted); padding: 14px 16px 6px;
+}
+.tft-sidebar-menu { display: flex; flex-direction: column; padding: 0 10px 20px; gap: 4px; }
+.tft-sidebar-item {
+  display: flex; align-items: center; gap: 10px; padding: 11px 12px;
+  background: none; border: none; border-radius: 6px; cursor: pointer;
+  font-family: var(--font-ui); font-size: 14px; font-weight: 600;
+  color: var(--text-sub); text-align: left; transition: all 0.18s;
+}
+.tft-sidebar-item:hover { background: var(--pur-dim); color: var(--pur-light); }
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .tft-nav-hamburger     { display: flex !important; }
+  .tft-nav-search-desktop { display: none !important; }
+  .tft-nav-back-desktop  { display: none !important; }
+
+  .nav {
+    height: 52px !important;
+    padding: 0 14px !important;
+    justify-content: space-between;
+  }
+  .page-wrapper { padding-top: 72px; }
+}
+
+@media (min-width: 769px) {
+  .tft-nav-hamburger { display: none !important; }
+  .tft-nav-sidebar   { right: -280px !important; }
+  .tft-sidebar-overlay { display: none !important; }
+}
+
 </style>
 </head>
 <body>
@@ -337,8 +421,8 @@ body::after {
     <span class="nav-logo-sub">TFT</span>
   </a>
 
-  <!-- 중앙: 검색창 (absolute 센터링) -->
-  <div class="nav-search-center" style="position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;width:100%;max-width:480px;padding:0 8px;box-sizing:border-box;">
+  <!-- 중앙: 검색창 (absolute 센터링 — 모바일에서 숨김) -->
+  <div class="nav-search-center tft-nav-search-desktop" style="position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;width:100%;max-width:480px;padding:0 8px;box-sizing:border-box;">
     <div id="nav-search-box"
          style="display:flex;align-items:center;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px 0 0 6px;flex:1;overflow:hidden;transition:border-color 0.2s;"
          onfocusin="this.style.borderColor='var(--gold)'"
@@ -369,13 +453,77 @@ body::after {
     </button>
   </div>
 
-  <!-- 우측: 검색으로 버튼 -->
-  <div style="margin-left:auto;flex-shrink:0;">
-    <button class="nav-back" onclick="navigateTo('/RiotSearch/')">
+  <!-- 우측: 검색으로 버튼 (데스크탑) + 햄버거 (모바일) -->
+  <div style="margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:8px;">
+    <button class="nav-back tft-nav-back-desktop" onclick="navigateTo('/RiotSearch/')">
       검색으로
+    </button>
+    <!-- 모바일 햄버거 -->
+    <button class="tft-nav-hamburger" id="tft-nav-hamburger" onclick="openTftSidebar()" aria-label="메뉴 열기">
+      <span></span><span></span><span></span>
     </button>
   </div>
 </nav>
+
+<!-- TFT 사이드바 오버레이 -->
+<div class="tft-sidebar-overlay" id="tft-sidebar-overlay" onclick="closeTftSidebar()"></div>
+
+<!-- TFT 우측 슬라이드 사이드바 -->
+<aside class="tft-nav-sidebar" id="tft-nav-sidebar">
+  <div class="tft-sidebar-header">
+    <span style="display:flex;align-items:center;gap:6px;">
+      <span style="font-size:16px;font-weight:700;letter-spacing:2px;color:var(--gold);">DEAI</span>
+      <span style="color:var(--text-muted);">×</span>
+      <span style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--pur-light);">TFT</span>
+    </span>
+    <button class="tft-sidebar-close" onclick="closeTftSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px;">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 사이드바 내 검색 -->
+  <div class="tft-sidebar-search">
+    <div style="display:flex;align-items:center;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px 0 0 6px;flex:1;overflow:hidden;">
+      <input id="sb-name-input" type="text" placeholder="소환사 이름" autocomplete="off"
+             style="background:none;border:none;outline:none;padding:10px 10px;font-family:var(--font-ui);font-size:14px;color:var(--text-bright);flex:1;min-width:0;"
+             onkeydown="if(event.key==='Enter')tftSidebarSearch()"/>
+      <span style="color:var(--text-muted);font-size:15px;padding:0 4px;flex-shrink:0;">#</span>
+      <input id="sb-tag-input" type="text" placeholder="KR1" maxlength="8" autocomplete="off"
+             style="background:none;border:none;outline:none;padding:10px 6px;font-family:var(--font-ui);font-size:14px;color:var(--text-bright);width:64px;flex-shrink:0;"
+             onkeydown="if(event.key==='Enter')tftSidebarSearch()"/>
+    </div>
+    <button onclick="tftSidebarSearch()"
+            style="background:var(--gold);border:none;border-radius:0 6px 6px 0;width:44px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" style="width:16px;height:16px;">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="tft-sidebar-label">페이지</div>
+  <nav class="tft-sidebar-menu">
+    <button class="tft-sidebar-item" onclick="closeTftSidebar();navigateTo('/RiotSearch/')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+      검색으로
+    </button>
+    <button class="tft-sidebar-item" onclick="closeTftSidebar();navigateTo('/Deai_main/')">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex-shrink:0;">
+        <path d="M3 10L10 3l7 7"/><path d="M5 8v8h4v-4h2v4h4V8"/>
+      </svg>
+      메인으로
+    </button>
+    <button class="tft-sidebar-item" onclick="closeTftSidebar();navigateTo('/RiotRanking/')">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex-shrink:0;">
+        <rect x="2" y="12" width="4" height="6" rx="1"/><rect x="8" y="8" width="4" height="10" rx="1"/><rect x="14" y="4" width="4" height="14" rx="1"/>
+      </svg>
+      랭킹 페이지
+    </button>
+  </nav>
+</aside>
 <div class="page-wrapper">
   <div class="userpage-wrap">
 
@@ -389,7 +537,6 @@ body::after {
 
       <div class="rank-cards-row">
 
->
       <div class="card anim-2" id="rank-card-solo">
         <div class="rank-card-header">랭크 (솔로)</div>
         <div class="state-box" style="padding:24px;"><div class="spinner"></div></div>
@@ -407,7 +554,7 @@ body::after {
 
     </aside>
 
-    <main class="main-content">->
+    <main class="main-content">
       <div class="card anim-2" id="stats-bar-wrap" style="display:none;">
         <div class="stats-bar">
           <div class="stats-bar-item">
@@ -1505,7 +1652,30 @@ window.addEventListener('pageshow', (e) => {
     document.body.style.transform = 'none';
   }
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMatchModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeMatchModal(); closeTftSidebar(); }
+});
+
+/* ── TFT 사이드바 ── */
+function openTftSidebar() {
+  document.getElementById('tft-nav-sidebar').classList.add('open');
+  document.getElementById('tft-sidebar-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeTftSidebar() {
+  document.getElementById('tft-nav-sidebar').classList.remove('open');
+  document.getElementById('tft-sidebar-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function tftSidebarSearch() {
+  const name = document.getElementById('sb-name-input').value.trim();
+  const tag  = document.getElementById('sb-tag-input').value.trim();
+  if (!name) { document.getElementById('sb-name-input').focus(); return; }
+  document.getElementById('nav-name-input').value = name;
+  document.getElementById('nav-tag-input').value  = tag;
+  closeTftSidebar();
+  navSearch();
+}
 </script>
 </body>
 </html>
